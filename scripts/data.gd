@@ -43,6 +43,8 @@ const ITEMS := {
 		"kind": "tank", "capacity": 8, "appeal": 12.0, "height": 1.3, "rooms": ["show", "back", "hall"]},
 	"tank_large": {"name": "Large Tank", "cat": "Tanks", "cost": 800, "size": Vector2(2.5, 1.0),
 		"kind": "tank", "capacity": 14, "appeal": 25.0, "height": 1.45, "rooms": ["show", "back", "hall"]},
+	"tank_holding": {"name": "Holding Tank (200 gal)", "cat": "Tanks", "cost": 500, "size": Vector2(2.5, 1.0),
+		"kind": "holding", "capacity": 20, "appeal": 0.0, "height": 1.45, "rooms": ["back"]},
 	"tank_breeding": {"name": "Breeding Tank", "cat": "Tanks", "cost": 400, "size": Vector2(1.5, 0.75),
 		"kind": "breeding", "capacity": 6, "appeal": 0.0, "height": 1.2, "rooms": ["back"]},
 	"shelf": {"name": "Supply Shelf", "cat": "Shelves", "cost": 200, "size": Vector2(2.0, 0.75),

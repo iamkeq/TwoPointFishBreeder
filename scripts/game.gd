@@ -22,6 +22,8 @@ signal show_result(result: Dictionary)
 signal goals_changed
 signal autosave_wanted
 signal awards_changed
+## Fish from the market arrived; the world puts them in holding tanks (see main.gd).
+signal fish_delivered(fish: Array)
 
 ## Real seconds per game day at 1x speed.
 const DAY_SECONDS := 6.0
@@ -549,7 +551,7 @@ func units_ordered(product: String) -> int:
 func _deliver_orders() -> void:
 	var still: Array = []
 	var stock_came := false
-	var fish_came := false
+	var arrived: Array = []
 	for o in pending_orders:
 		if int(o["arrives"]) > abs_day:
 			still.append(o)
@@ -558,15 +560,27 @@ func _deliver_orders() -> void:
 			stock_came = true
 		else:
 			for i in int(o["units"]):
-				fish_storage.append(new_fish(o["species"], int(o["stars"]), o.get("variety", ""), o.get("sex", "")))
-			fish_came = true
+				arrived.append(new_fish(o["species"], int(o["stars"]), o.get("variety", ""), o.get("sex", "")))
 	pending_orders = still
 	if stock_came:
 		notify.emit("Supplies delivered to the back room")
 		stock_changed.emit()
-	if fish_came:
-		notify.emit("Fish delivered to the back room")
+	if not arrived.is_empty():
+		if fish_delivered.get_connections().is_empty():
+			fish_storage.append_array(arrived)
+			notify.emit("Fish delivered to the back room")
+		else:
+			fish_delivered.emit(arrived)
 		fish_changed.emit()
+
+
+## Fish ordered from the market that haven't arrived yet.
+func fish_on_order() -> int:
+	var n := 0
+	for o in pending_orders:
+		if not o.has("product"):
+			n += int(o["units"])
+	return n
 
 
 ## Take up to `units` of `product` out of the stockroom; returns how many were taken.

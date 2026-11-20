@@ -438,6 +438,8 @@ func _item_blurb(def: Dictionary) -> String:
 			return "Holds %d fish. Base appeal %d. %s" % [def["capacity"], int(def["appeal"]), rooms]
 		"breeding":
 			return "Breeds a pair of fish into fry. %s only" % rooms
+		"holding":
+			return "Holds %d fish. Fish you buy from the market arrive here; nothing breeds in it. %s only" % [def["capacity"], rooms]
 		"shelf":
 			return "Sells one supply, holds %d. %s" % [def["capacity"], rooms]
 		"counter":
@@ -478,7 +480,18 @@ func _order_panel() -> void:
 			var b := _button(box, "Box of %d\n$%d" % [p["box"], cost], func(): Game.order_supplies(id))
 			b.disabled = not Game.can_afford(cost)
 	else:
-		_small(_side_box, "The fish market delivers adults to the back room tomorrow. Market fish cost more than customers pay: the money is in breeding them.")
+		_small(_side_box, "The fish market delivers adults tomorrow, into your holding tank in the back room. Market fish cost more than customers pay: the money is in breeding them.")
+		var space: int = world.holding_space()
+		var hl := Label.new()
+		if world.holding_tanks().is_empty():
+			hl.text = "No holding tank: deliveries will wait in storage. Build one (Tanks)."
+		else:
+			hl.text = "Holding tank space: %d free%s" % [maxi(space, 0), "  (%d on order)" % Game.fish_on_order() if Game.fish_on_order() > 0 else ""]
+			if space <= 0:
+				hl.text += ". Full: more fish will wait in storage."
+		hl.add_theme_color_override("font_color", C_BAD if space <= 0 else C_GOOD)
+		hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_side_box.add_child(hl)
 		for sp in FishData.MARKET:
 			if not _market.has(sp):
 				_market[sp] = {"variety": FishData.MARKET[sp][0], "sex": "f", "stars": 2}
@@ -866,7 +879,7 @@ func _refresh_selection() -> void:
 
 
 func _tank_section(tank: Node) -> void:
-	if not tank.is_breeding() and not tank.in_hall():
+	if not tank.is_breeding() and not tank.is_holding() and not tank.in_hall():
 		var sc := CheckButton.new()
 		sc.text = "Showcase ($%d/month)" % Data.SHOWCASE_UPKEEP
 		sc.button_pressed = tank.showcase
@@ -883,7 +896,7 @@ func _tank_section(tank: Node) -> void:
 		var r := _card(_sel_box)
 		r.add_child(_fish_pic(f))
 		var l := Label.new()
-		var price := "" if tank.is_breeding() or tank.in_hall() or not FishData.is_adult(f) else "\n$%d" % tank.price_of(f)
+		var price := "" if tank.is_breeding() or tank.is_holding() or tank.in_hall() or not FishData.is_adult(f) else "\n$%d" % tank.price_of(f)
 		l.text = Data.fish_label(f) + price
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1078,7 +1091,7 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 	if in_hall:
 		sells = "Not for sale (Hall of Fame)"
 	elif adult:
-		sells = "$%d" % (home.price_of(f) if home != null and not home.is_breeding() else Data.fish_price(f))
+		sells = "$%d" % (home.price_of(f) if home != null and not home.is_breeding() and not home.is_holding() else Data.fish_price(f))
 	var life := ""
 	if in_hall:
 		life = ", never grows old (Hall of Fame)"

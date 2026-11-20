@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.7.0** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.7.1** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -65,6 +65,9 @@ Version **0.7.0** (Godot 4.7.2, Forward+). This is the base system.
   variety earns a bonus. The **Breeding book** (Fish panel) shows them all, with recipe hints.
 - **Fish market** (Order > Fish): adults of the common varieties (and a few first-generation
   ones), your choice of sex and 1-3 stars. Market fish cost more than customers pay.
+- **Holding tanks** (back room, 200 gallons, 20 fish, $500): fish you buy arrive in them the
+  next day. Nothing breeds in a holding tank; move the fish on to a breeding or display tank.
+  The Order panel shows the space left; fish that don't fit wait in storage.
 - **Fish shows** (Show): every 14 days, every 4th is a Grand Show, with rotating classes
   (Open, Guppy, Quality 3★+, Goldfish, Rare varieties). Enter one fish from storage; rival
   breeders get better over time. Prizes: money for the top 3 (x3 at Grand Shows); a win
@@ -84,11 +87,11 @@ Version **0.7.0** (Godot 4.7.2, Forward+). This is the base system.
     (a warning pops up when it does). Keepers clean breeding tanks with a pair in them
     first, then showroom tanks, then the dirtiest.
   - You start with a cashier and a stocker. Idle staff wait by the back-room desk.
-- **New game**: a bare shop with the till, one display tank of guppies, one supply shelf
-  and one breeding tank (a red and yellow guppy trio), plus a comet and fantail goldfish
-  pair in storage. Build the rest yourself. A **First steps** checklist (top left) pays
+- **New game**: a bare shop with the till, one display tank of guppies, one supply shelf,
+  one breeding tank (a red and yellow guppy trio) and a holding tank, plus a comet and
+  fantail goldfish pair in storage. Build the rest yourself. A **First steps** checklist (top left) pays
   $250 for each of: hire a Fish Keeper, put a bred fish on display, breed the goldfish,
-  build a second display tank.
+  build a second display tank. Its – button folds it down to a title bar.
 - **Marketing** (flyers, newspaper, radio) brings in more customers for a monthly fee.
 - **Monthly report**: customers, happy/disappointed, sales, costs (rent $350 plus $120-150
   per plot bought) and profit. Reputation settles at about the share of customers who

@@ -35,6 +35,11 @@ func is_breeding() -> bool:
 	return def["kind"] == "breeding"
 
 
+## A back-room holding tank: fish from the market arrive here. Nothing breeds in it.
+func is_holding() -> bool:
+	return def["kind"] == "holding"
+
+
 func capacity() -> int:
 	return int(def["capacity"])
 
@@ -50,6 +55,8 @@ func _build_model() -> void:
 	tank.position = Vector3(-(b.position.x + b.size.x * 0.5) * s.x, -b.position.y * s.y, -(b.position.z + b.size.z * 0.5) * s.z)
 	if is_breeding():
 		Synty.tint(tank, Color(0.6, 0.8, 1.0))
+	elif is_holding():
+		Synty.tint(tank, Color(0.7, 0.95, 0.75))
 	var lo := tank.position + INSIDE_MIN * s
 	var hi := tank.position + INSIDE_MAX * s
 	_inside = AABB(lo, hi - lo)
@@ -168,7 +175,7 @@ func hall_prestige() -> int:
 
 ## How attractive this tank is to customers (0 = bare, ~100 = superb).
 func appeal() -> float:
-	if is_breeding():
+	if is_breeding() or is_holding():
 		return 0.0
 	var a := float(def["appeal"])
 	if world != null:
@@ -196,7 +203,7 @@ func price_of(f: Dictionary) -> int:
 ## A customer decides whether to buy here. Returns the fish (taken out of the tank) and
 ## its price, or {} if they don't. Fry aren't for sale.
 func try_sell(rng: RandomNumberGenerator) -> Dictionary:
-	if is_breeding() or in_hall():
+	if is_breeding() or is_holding() or in_hall():
 		return {}
 	var adults := fish.filter(func(f): return FishData.is_adult(f))
 	if adults.is_empty():
@@ -289,6 +296,8 @@ func _on_day() -> void:
 func info_text() -> String:
 	var lines: Array[String] = []
 	lines.append("Fish: %d / %d" % [fish.size(), capacity()])
+	if is_holding():
+		lines.append("Fish bought from the market arrive here. Nothing breeds in a holding tank: move fish to a breeding tank or a display tank.")
 	if in_hall():
 		lines.append("Hall of Fame: these fish never grow old and the water never gets dirty. They aren't for sale.")
 		lines.append("Prestige +%d (stars, plus 4 for each show ribbon)" % hall_prestige())
@@ -307,7 +316,7 @@ func info_text() -> String:
 		lines.append(p["note"])
 		if int(p["others"]) > 0:
 			lines.append("%d fish of another species won't breed here." % p["others"])
-	else:
+	elif not is_holding():
 		lines.append("Appeal: %d  (price +%d%%)" % [int(appeal()), int(price_bonus() * 100.0)])
 		if room() != "show":
 			lines.append("Customers only see tanks in the showroom.")

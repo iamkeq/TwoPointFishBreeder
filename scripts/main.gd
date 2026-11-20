@@ -107,6 +107,7 @@ func _ready() -> void:
 	_sync_staff()
 	Game.month_ended.connect(func(_r): _count_showcases())
 	Game.awards_changed.connect(_refresh_trophies)
+	Game.fish_delivered.connect(_on_fish_delivered)
 	rebake()
 
 
@@ -165,6 +166,41 @@ func customer_rate() -> float:
 	r *= 1.0 + minf(showroom_appeal(), 400.0) / 400.0
 	r *= 1.0 + hall_bonus()
 	return r
+
+
+## Market fish go into the holding tanks; any that don't fit wait in storage.
+func _on_fish_delivered(list: Array) -> void:
+	var held := 0
+	for f in list:
+		var put := false
+		for t in holding_tanks():
+			if t.fish.size() < t.capacity() and t.add_fish(f):
+				put = true
+				break
+		if put:
+			held += 1
+		else:
+			Game.fish_storage.append(f)
+	var over := list.size() - held
+	if over == 0:
+		Game.notify.emit("%d fish delivered to the holding tank" % held)
+	elif held == 0:
+		Game.notify.emit("%d fish delivered to storage: %s" % [over,
+			"the holding tanks are full" if not holding_tanks().is_empty() else "build a Holding Tank in the back room for them"])
+	else:
+		Game.notify.emit("%d fish delivered to the holding tank, %d to storage (it's full)" % [held, over])
+
+
+func holding_tanks() -> Array:
+	return objects().filter(func(o): return o is Tank and o.is_holding())
+
+
+## Room left in the holding tanks, after fish already on order.
+func holding_space() -> int:
+	var n := 0
+	for t in holding_tanks():
+		n += t.capacity() - t.fish.size()
+	return n - Game.fish_on_order()
 
 
 ## The Hall of Fame's prestige: its fish (stars, ribbons) and the trophies on show.
@@ -239,6 +275,8 @@ func make_object(id: String, ghost: bool = false) -> Node3D:
 		obj = Tank.new()
 	elif kind == "shelf":
 		obj = Shelf.new()
+	elif kind == "holding":
+		obj = Tank.new()
 	elif kind == "trophies":
 		obj = TrophyCase.new()
 	else:
@@ -460,11 +498,12 @@ func float_text(p: Vector3, text: String, color: Color) -> void:
 
 func _starting_shop() -> void:
 	# A bare shop: the till by the door, one display tank, one supply shelf, and one
-	# breeding tank in the back room. Everything else is up to the player.
+	# breeding tank and a holding tank in the back room. Everything else is up to the player.
 	place("counter", Vector3(5.0, 0, -5.75), 0)
 	var tank := place("tank_medium", Vector3(-4.0, 0, -1.0), 2) as Tank
 	var shelf := place("shelf", Vector3(10.625, 0, -2.0), 1) as Shelf
 	var breeder := place("tank_breeding", Vector3(-5.5, 0, 11.75), 2) as Tank
+	place("tank_holding", Vector3(-1.5, 0, 11.8), 2)  # market deliveries arrive here
 
 	# Stock: guppies to sell, a pair to breed, a goldfish pair waiting in storage.
 	var rng := RandomNumberGenerator.new()
@@ -544,6 +583,10 @@ func _shoot(path: String) -> void:
 			if arg == "--hall-east":
 				Game.buy_plot("east")
 			print("HALL prestige=", hall_prestige(), " bonus=", hall_bonus(), " rect=", L.hall(), " tank_room=", t.room())
+		elif arg.begins_with("--order-fish="):
+			for i in int(arg.substr(13)):
+				Game.order_fish("guppy", "red", "m" if i % 2 == 0 else "f", 2)
+			Game.notify.connect(func(t): print("NOTE ", t))
 		elif arg == "--steps-min":
 			Game.steps_minimized = true
 		elif arg == "--edit":
@@ -557,7 +600,10 @@ func _shoot(path: String) -> void:
 			for plot in arg.substr(6).split(","):
 				Game.buy_plot(plot)
 		elif arg.begins_with("--panel="):
-			hud._open.call_deferred(arg.substr(8))
+			var pv := arg.substr(8).split(":")
+			if pv.size() > 1:
+				hud._order_tab = pv[1]
+			hud._open.call_deferred(pv[0])
 		elif arg.begins_with("--hire="):
 			for role in arg.substr(7).split(","):
 				Game.hire(role)
