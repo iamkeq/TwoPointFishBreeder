@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.6.0** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.6.1** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
