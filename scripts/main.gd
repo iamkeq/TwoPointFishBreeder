@@ -11,6 +11,7 @@ const BuildTool := preload("res://scripts/world/build_tool.gd")
 const Placeable := preload("res://scripts/world/placeable.gd")
 const Tank := preload("res://scripts/world/tank.gd")
 const Shelf := preload("res://scripts/world/shelf.gd")
+const TrophyCase := preload("res://scripts/world/trophy_case.gd")
 const Customer := preload("res://scripts/world/customer.gd")
 const Staff := preload("res://scripts/world/staff.gd")
 const Hud := preload("res://scripts/ui/hud.gd")
@@ -105,6 +106,7 @@ func _ready() -> void:
 	Game.staff_changed.connect(_sync_staff)
 	_sync_staff()
 	Game.month_ended.connect(func(_r): _count_showcases())
+	Game.awards_changed.connect(_refresh_trophies)
 	rebake()
 
 
@@ -161,7 +163,46 @@ func customer_rate() -> float:
 	var r := 0.6 + Game.reputation / 100.0
 	r *= 1.0 + float(Data.MARKETING[Game.marketing]["boost"])
 	r *= 1.0 + minf(showroom_appeal(), 400.0) / 400.0
+	r *= 1.0 + hall_bonus()
 	return r
+
+
+## The Hall of Fame's prestige: its fish (stars, ribbons) and the trophies on show.
+func hall_prestige() -> int:
+	var p := 0
+	for o in objects():
+		if o.room() != "hall":
+			continue
+		if o is Tank:
+			p += o.hall_prestige()
+		elif o is TrophyCase:
+			p += o.prestige()
+	return p
+
+
+## Extra customers the Hall of Fame draws: up to +50% (at 150 prestige).
+func hall_bonus() -> float:
+	return minf(hall_prestige(), 150.0) / 300.0
+
+
+## Things in the Hall of Fame worth a look (tanks with fish, cabinets with trophies).
+func hall_sights() -> Array:
+	return objects().filter(func(o): return o.room() == "hall" and (
+		(o is Tank and not o.fish.is_empty()) or (o is TrophyCase and not o.awards.is_empty())))
+
+
+## Hand out the trophies to the cabinets, best first (Grand Show golds, then golds, ...).
+func _refresh_trophies() -> void:
+	var list := Game.awards.duplicate()
+	list.sort_custom(func(a, b): return TrophyCase.award_prestige(a) > TrophyCase.award_prestige(b))
+	var i := 0
+	for o in objects():
+		if o is TrophyCase:
+			if o.room() == "hall":
+				o.show_awards(list.slice(i, i + TrophyCase.PER_CASE))
+				i += TrophyCase.PER_CASE
+			else:
+				o.show_awards([])
 
 
 ## Sum of tank appeal in the showroom, which word of mouth carries down the street.
@@ -198,6 +239,8 @@ func make_object(id: String, ghost: bool = false) -> Node3D:
 		obj = Tank.new()
 	elif kind == "shelf":
 		obj = Shelf.new()
+	elif kind == "trophies":
+		obj = TrophyCase.new()
 	else:
 		obj = Placeable.new()
 	obj.world = self
@@ -239,6 +282,7 @@ func _count_kind(kind: String) -> int:
 ## Something was built, moved or removed: rebake where people can walk.
 func objects_changed() -> void:
 	_count_showcases()
+	_refresh_trophies.call_deferred()
 	if not _rebake_pending:
 		_rebake_pending = true
 		rebake.call_deferred()
@@ -267,7 +311,7 @@ func can_place(id: String, r: Rect2, ignore: Node) -> Dictionary:
 		if L.room_rect(candidate).encloses(r):
 			room = candidate
 	if room == "":
-		var where := " or ".join(PackedStringArray(def["rooms"].map(func(x): return "showroom" if x == "show" else "back room")))
+		var where := " or ".join(PackedStringArray(def["rooms"].map(func(x): return L.room_name(x))))
 		return {"ok": false, "why": "must be inside the " + where}
 	if not def.get("walkable", false):
 		for z in L.door_zones():
@@ -472,6 +516,7 @@ func _shoot(path: String) -> void:
 			Game.set_speed(3)
 			Game.autoplay = true
 			Game.day_passed.connect(_smart_player if arg == "--smart" else _test_player)
+			Game.notify.connect(func(t): if t.contains("old age") or t.contains("getting old") or t.contains("trophy"): print("NOTE day=", Game.abs_day, " ", t))
 			Game.month_ended.connect(func(r): print("REPORT ", r["title"], " cust=", r["customers"], " happy=", r["happy"], "/", r["unhappy"], " gaveup=", r["gave_up"], " fish=", r["fish_sold"], " items=", r["items_sold"], " income=", r["income"], " exp=", r["expenses"], " profit=", r["profit"], " bal=", r["balance"], " debt=", r["debt"], " bred=", r["fish_bred"], " book=", Game.discovered, " stars=", Game.stars_earned, " ach=", Game.achievements_done.size(), " shows=", Game.totals["shows_won"]))
 		elif arg.begins_with("--cam="):
 			var v := arg.substr(6).split(",")
@@ -480,6 +525,25 @@ func _shoot(path: String) -> void:
 			await get_tree().process_frame
 			if tool.selected != null:
 				hud._breeding_forecast(tool.selected)
+		elif arg == "--hall" or arg == "--hall-east":
+			# Test only: buy the Hall of Fame and fill it (then the east wing, to check it moves).
+			Game.money += 40000
+			Game.buy_plot("hall")
+			var h := L.hall()
+			var t := place("tank_large", Vector3(h.get_center().x, 0, h.position.y + 0.75), 0) as Tank
+			for i in 6:
+				var f := Game.new_fish("goldfish", 4 + i % 2, ["ranchu", "oranda", "lionhead", "celestial", "pearlscale", "bubble_eye"][i])
+				f["ribbon"] = i % 3
+				t.add_fish(f)
+			for i in 7:
+				Game.awards.append({"title": "Grand Show" if i == 0 else "Fish Show %d" % i, "place": 1 + i % 3, "grand": i == 0, "day": i, "fish": "Test fish"})
+			place("trophy_case", Vector3(h.get_center().x - 1.5, 0, h.end.y - 0.5), 2)
+			place("trophy_case", Vector3(h.get_center().x + 1.5, 0, h.end.y - 0.5), 2)
+			place("plant", Vector3(h.end.x - 0.6, 0, h.position.y + 0.6), 0)
+			Game.awards_changed.emit()
+			if arg == "--hall-east":
+				Game.buy_plot("east")
+			print("HALL prestige=", hall_prestige(), " bonus=", hall_bonus(), " rect=", L.hall(), " tank_room=", t.room())
 		elif arg == "--edit":
 			tool.toggle_edit(true)
 		elif arg == "--fishpop":
@@ -590,7 +654,7 @@ func _smart_player() -> void:
 		var t := _build_free("tank_medium", "show")
 		if t != null:
 			_build_free("plant", "show", t.position)
-	print("DAY ", d, " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
+	print("DAY ", d, " hall=", hall_prestige(), " died=", Game.stats.get("fish_died", 0), " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
 		" show_tanks=", shows.size(), " show_fish=", shows.reduce(func(a, o): return a + o.fish.size(), 0),
 		" appeal=", int(showroom_appeal()), " rate=", snappedf(customer_rate(), 0.01), " rep=", int(Game.reputation),
 		" dirt=", objects().filter(func(o): return o is Tank).map(func(o): return int(o.dirt)),
@@ -633,7 +697,15 @@ func _clear_of_all(r: Rect2) -> bool:
 # --- Expansion --------------------------------------------------------------------------
 
 func _on_plots_changed() -> void:
+	var old_hall := L.hall() if L.has_hall else Rect2()
 	L.apply_plots(Game.owned_plots)
+	# The east wing pushes the Hall of Fame out: everything in it goes along.
+	if L.has_hall and old_hall.has_area() and not is_equal_approx(old_hall.position.x, L.hall().position.x):
+		var shift := L.hall().position.x - old_hall.position.x
+		var movers: Array = objects() + customers_root.get_children() + staff_root.get_children()
+		for n in movers:
+			if old_hall.has_point(Vector2(n.position.x, n.position.z)):
+				n.position.x += shift
 	building.rebuild()
 	_fit_nav_area()
 	_fit_build_grid()
@@ -642,13 +714,13 @@ func _on_plots_changed() -> void:
 
 ## Only bake navigation over the building and the pavement out front.
 func _fit_nav_area() -> void:
-	var b := L.building()
+	var b := L.indoors()
 	nav.navigation_mesh.filter_baking_aabb = AABB(Vector3(b.position.x - 1.0, -1.0, b.position.y - 5.0),
 		Vector3(b.size.x + 2.0, 4.0, b.size.y + 6.0))
 
 
 func _fit_build_grid() -> void:
-	var b := L.building()
+	var b := L.indoors()
 	var pm := PlaneMesh.new()
 	pm.size = b.size
 	_build_grid.mesh = pm

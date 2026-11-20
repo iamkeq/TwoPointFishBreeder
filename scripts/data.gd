@@ -34,15 +34,15 @@ const PRODUCTS := {
 }
 
 ## Things you can build. `size` is the footprint in metres (width along local X, depth
-## along local Z) before rotation. `rooms`: where it may go ("show", "back").
+## along local Z) before rotation. `rooms`: where it may go ("show", "back", "hall").
 ## `appeal`: how much it adds to tanks within APPEAL_RADIUS (decor) or the tank's own base.
 const ITEMS := {
 	"tank_small": {"name": "Small Tank", "cat": "Tanks", "cost": 150, "size": Vector2(1.0, 0.5),
-		"kind": "tank", "capacity": 4, "appeal": 5.0, "height": 1.15, "rooms": ["show", "back"]},
+		"kind": "tank", "capacity": 4, "appeal": 5.0, "height": 1.15, "rooms": ["show", "back", "hall"]},
 	"tank_medium": {"name": "Medium Tank", "cat": "Tanks", "cost": 350, "size": Vector2(1.5, 0.75),
-		"kind": "tank", "capacity": 8, "appeal": 12.0, "height": 1.3, "rooms": ["show", "back"]},
+		"kind": "tank", "capacity": 8, "appeal": 12.0, "height": 1.3, "rooms": ["show", "back", "hall"]},
 	"tank_large": {"name": "Large Tank", "cat": "Tanks", "cost": 800, "size": Vector2(2.5, 1.0),
-		"kind": "tank", "capacity": 14, "appeal": 25.0, "height": 1.45, "rooms": ["show", "back"]},
+		"kind": "tank", "capacity": 14, "appeal": 25.0, "height": 1.45, "rooms": ["show", "back", "hall"]},
 	"tank_breeding": {"name": "Breeding Tank", "cat": "Tanks", "cost": 400, "size": Vector2(1.5, 0.75),
 		"kind": "breeding", "capacity": 6, "appeal": 0.0, "height": 1.2, "rooms": ["back"]},
 	"shelf": {"name": "Supply Shelf", "cat": "Shelves", "cost": 200, "size": Vector2(2.0, 0.75),
@@ -52,24 +52,26 @@ const ITEMS := {
 	"counter": {"name": "Till Counter", "cat": "Shop", "cost": 300, "size": Vector2(2.0, 1.0),
 		"kind": "counter", "model": "Props/SM_Prop_Shop_Desk_01", "rooms": ["show"]},
 	"plant": {"name": "Potted Plant", "cat": "Decor", "cost": 40, "size": Vector2(0.5, 0.5),
-		"kind": "decor", "appeal": 6.0, "rooms": ["show", "back"]},
+		"kind": "decor", "appeal": 6.0, "rooms": ["show", "back", "hall"]},
 	"flowers": {"name": "Flower Stand", "cat": "Decor", "cost": 90, "size": Vector2(1.0, 0.5),
-		"kind": "decor", "appeal": 12.0, "model": "Props/SM_Prop_Flower_Stand_Preset_01", "rooms": ["show"]},
+		"kind": "decor", "appeal": 12.0, "model": "Props/SM_Prop_Flower_Stand_Preset_01", "rooms": ["show", "hall"]},
 	"bench": {"name": "Bench", "cat": "Decor", "cost": 80, "size": Vector2(1.5, 0.5),
-		"kind": "decor", "appeal": 4.0, "model": "Props/SM_Prop_Bench_01", "rooms": ["show"]},
+		"kind": "decor", "appeal": 4.0, "model": "Props/SM_Prop_Bench_01", "rooms": ["show", "hall"]},
 	"statue": {"name": "Bear Statue", "cat": "Decor", "cost": 250, "size": Vector2(1.0, 1.0),
-		"kind": "decor", "appeal": 20.0, "model": "Props/SM_Prop_Bear_Statue_01", "rooms": ["show"]},
+		"kind": "decor", "appeal": 20.0, "model": "Props/SM_Prop_Bear_Statue_01", "rooms": ["show", "hall"]},
 	"rug": {"name": "Rug", "cat": "Decor", "cost": 30, "size": Vector2(2.0, 1.5),
-		"kind": "rug", "appeal": 5.0, "rooms": ["show", "back"], "walkable": true},
+		"kind": "rug", "appeal": 5.0, "rooms": ["show", "back", "hall"], "walkable": true},
 	"boxes": {"name": "Stock Boxes", "cat": "Back Room", "cost": 60, "size": Vector2(1.0, 1.0),
 		"kind": "decor", "appeal": 0.0, "model": "Props/SM_Prop_Warehouse_Boxes_Stacked_01", "rooms": ["back"]},
 	"pallet": {"name": "Pallet Rack", "cat": "Back Room", "cost": 120, "size": Vector2(2.0, 1.0),
 		"kind": "decor", "appeal": 0.0, "model": "Props/SM_Prop_Warehouse_Pallet_Stacked_01", "rooms": ["back"]},
 	"desk": {"name": "Office Desk", "cat": "Back Room", "cost": 150, "size": Vector2(1.5, 1.0),
 		"kind": "decor", "appeal": 0.0, "model": "Props/SM_Prop_Shop_Desk_03", "rooms": ["back"]},
+	"trophy_case": {"name": "Trophy Cabinet", "cat": "Hall of Fame", "cost": 300, "size": Vector2(1.5, 0.6),
+		"kind": "trophies", "height": 1.9, "rooms": ["hall"]},
 }
 
-const CATEGORIES := ["Tanks", "Shelves", "Shop", "Decor", "Back Room"]
+const CATEGORIES := ["Tanks", "Shelves", "Shop", "Decor", "Back Room", "Hall of Fame"]
 
 ## Decor within this many metres of a tank adds its appeal to that tank.
 const APPEAL_RADIUS := 4.0
@@ -129,6 +131,7 @@ const PLOTS := {
 	"west": {"name": "West wing", "cost": 9000, "rent": 120, "desc": "3 bays more width on the left, for both rooms."},
 	"east": {"name": "East wing", "cost": 9000, "rent": 120, "desc": "3 bays more width on the right, for both rooms."},
 	"back": {"name": "Rear extension", "cost": 12000, "rent": 150, "desc": "3 bays more depth for the back room."},
+	"hall": {"name": "Hall of Fame", "cost": 6000, "rent": 80, "desc": "A small room off the showroom for your best fish and your show trophies. Fish in it never grow old and its tanks never get dirty. Customers come to see it."},
 }
 
 ## After this many months of trading the bank will lend again, up to EXTRA_LOANS more times.
@@ -164,7 +167,8 @@ static func fish_label(f: Dictionary) -> String:
 		return "%s fry (grows up in %d day%s)" % [name, FishData.ADULT_AGE - int(f.get("age", 0)),
 			"" if FishData.ADULT_AGE - int(f.get("age", 0)) == 1 else "s"]
 	var ribbon := "  🎀" if int(f.get("ribbon", 0)) > 0 else ""
-	return "%s %s%s" % [stars_text(int(f["stars"])), name, ribbon]
+	var old := "  ⏳" if FishData.days_left(f) <= FishData.OLD_WARN_DAYS else ""
+	return "%s %s%s%s" % [stars_text(int(f["stars"])), name, ribbon, old]
 
 
 static func stars_text(stars: int) -> String:

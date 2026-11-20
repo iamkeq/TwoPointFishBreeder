@@ -59,6 +59,10 @@ func _plan_visits() -> void:
 	var n := mini(scored.size(), _rng.randi_range(2, 4))
 	_plan = scored.slice(0, n).map(func(x): return x[1])
 	_plan.shuffle()
+	# Some come to see the Hall of Fame as well.
+	var sights: Array = world.hall_sights()
+	if not sights.is_empty() and _rng.randf() < 0.35 + world.hall_bonus():
+		_plan.insert(_rng.randi() % (_plan.size() + 1), sights[_rng.randi() % sights.size()])
 
 
 func _interest(obj: Node) -> float:
@@ -166,7 +170,9 @@ func _decide() -> void:
 	if _target_obj == null or not is_instance_valid(_target_obj):
 		return
 	var kind: String = _target_obj.def["kind"]
-	if kind == "tank" and wants_fish and _count("fish") < 2:
+	if _target_obj.room() == "hall":
+		_say("★", Color("#ffd45c"))
+	elif kind == "tank" and wants_fish and _count("fish") < 2:
 		var got: Dictionary = _target_obj.try_sell(_rng)
 		if not got.is_empty():
 			basket.append(got)

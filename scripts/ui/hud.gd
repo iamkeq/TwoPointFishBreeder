@@ -7,6 +7,7 @@ const Data := preload("res://scripts/data.gd")
 const Tank := preload("res://scripts/world/tank.gd")
 const Shelf := preload("res://scripts/world/shelf.gd")
 const FishData := preload("res://scripts/fish_data.gd")
+const L := preload("res://scripts/world/layout.gd")
 const Genetics := preload("res://scripts/genetics.gd")
 const Goals := preload("res://scripts/goals.gd")
 const FishIcon := preload("res://scripts/ui/fish_icon.gd")
@@ -419,7 +420,7 @@ func _build_panel() -> void:
 
 
 func _item_blurb(def: Dictionary) -> String:
-	var rooms := " / ".join(PackedStringArray(def["rooms"].map(func(r): return "Showroom" if r == "show" else "Back room")))
+	var rooms := " / ".join(PackedStringArray(def["rooms"].map(func(r): return L.room_name(r).capitalize() if r != "hall" else "Hall of Fame")))
 	match def["kind"]:
 		"tank":
 			return "Holds %d fish. Base appeal %d. %s" % [def["capacity"], int(def["appeal"]), rooms]
@@ -429,6 +430,8 @@ func _item_blurb(def: Dictionary) -> String:
 			return "Sells one supply, holds %d. %s" % [def["capacity"], rooms]
 		"counter":
 			return "Customers pay here. %s" % rooms
+		"trophies":
+			return "Shows up to 9 of your fish show trophies; each adds prestige. %s only" % rooms
 		_:
 			if float(def.get("appeal", 0.0)) > 0.0:
 				return "+%d appeal to tanks nearby. %s" % [int(def["appeal"]), rooms]
@@ -672,7 +675,7 @@ func _on_money_for_bank() -> void:
 
 func _expand_panel() -> void:
 	_heading(_side_box, "Expand the shop")
-	_small(_side_box, "The lot has room for three more plots (the yellow grids on the grass). Rent is now $%d a month." % Game.rent())
+	_small(_side_box, "Buy plots to grow the shop (the grids on the grass). Rent is now $%d a month." % Game.rent())
 	for id in Data.PLOTS:
 		var p: Dictionary = Data.PLOTS[id]
 		var box := _card(_side_box)
@@ -681,6 +684,8 @@ func _expand_panel() -> void:
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		box.add_child(lab)
+		if id == "hall" and Game.owned_plots.has(id):
+			lab.text += "\nPrestige %d: +%d%% customers" % [world.hall_prestige(), int(world.hall_bonus() * 100.0)]
 		if Game.owned_plots.has(id):
 			var done := Label.new()
 			done.text = "Owned"
@@ -849,7 +854,7 @@ func _refresh_selection() -> void:
 
 
 func _tank_section(tank: Node) -> void:
-	if not tank.is_breeding():
+	if not tank.is_breeding() and not tank.in_hall():
 		var sc := CheckButton.new()
 		sc.text = "Showcase ($%d/month)" % Data.SHOWCASE_UPKEEP
 		sc.button_pressed = tank.showcase
@@ -866,7 +871,7 @@ func _tank_section(tank: Node) -> void:
 		var r := _card(_sel_box)
 		r.add_child(_fish_pic(f))
 		var l := Label.new()
-		var price := "" if tank.is_breeding() or not FishData.is_adult(f) else "\n$%d" % tank.price_of(f)
+		var price := "" if tank.is_breeding() or tank.in_hall() or not FishData.is_adult(f) else "\n$%d" % tank.price_of(f)
 		l.text = Data.fish_label(f) + price
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1016,7 +1021,7 @@ func _tank_name(tank: Node) -> String:
 			if o == tank:
 				n = same
 	var name: String = tank.display_name() + (" %d" % n if same > 1 else "")
-	return "%s (%s)" % [name, "showroom" if tank.room() == "show" else "back room"]
+	return "%s (%s)" % [name, L.room_name(tank.room())]
 
 
 ## Pop-up: a big picture of the fish, everything about it, and where it can go.
@@ -1057,8 +1062,17 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 		kind = "Mutation"
 	var age := int(f.get("age", 0))
 	var sells := "Not until it's grown"
-	if adult:
+	var in_hall: bool = home != null and home.in_hall()
+	if in_hall:
+		sells = "Not for sale (Hall of Fame)"
+	elif adult:
 		sells = "$%d" % (home.price_of(f) if home != null and not home.is_breeding() else Data.fish_price(f))
+	var life := ""
+	if in_hall:
+		life = ", never grows old (Hall of Fame)"
+	elif adult:
+		var left := FishData.days_left(f)
+		life = (", %d days left" % left) + ("  ⏳ old!" if left <= FishData.OLD_WARN_DAYS else "")
 	var origin := "Bought from the market"
 	if f.get("bred", false):
 		origin = "Bred in your shop" + (" (generation %d)" % int(f["gen"]) if int(f.get("gen", 0)) > 0 else "")
@@ -1067,7 +1081,7 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 		["Variety", "%s  ·  %s" % [v["name"] if v["name"] != "" else "Normal", kind]],
 		["Sex", "Male ♂" if f.get("sex", "m") == "m" else "Female ♀"],
 		["Quality", "%d of 5 stars" % int(f["stars"])],
-		["Age", ("%d days, grown up" % age) if adult else ("%d days, grows up in %d" % [age, FishData.ADULT_AGE - age])],
+		["Age", ("%d days%s" % [age, life]) if adult else ("%d days, grows up in %d" % [age, FishData.ADULT_AGE - age])],
 		["Sells for", sells],
 		["Market price", "$%d to buy one like it, pays $%d for this one" % [Data.wholesale_price(f["species"], f.get("variety", ""), int(f["stars"])), Data.market_buy_price(f)]],
 		["Where from", origin],

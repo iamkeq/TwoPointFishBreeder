@@ -17,6 +17,8 @@ const BACK_FLOOR_MATERIAL := "Building_Mats/PolygonShops_Mat_Tile_03_mat"
 const TRIM_MATERIAL := "Building_Mats/PolygonShops_Mat_Base_Wood_01_mat"
 const SHOW_PAINT := Color(0.78, 0.93, 0.95)  # pale aqua for the showroom
 const BACK_PAINT := Color(1.0, 0.92, 0.78)  # warm cream for the back room
+const HALL_PAINT := Color(0.62, 0.22, 0.27)  # deep red for the Hall of Fame
+const HALL_FLOOR_MATERIAL := "Building_Mats/PolygonShops_Mat_Base_Carpet_01_mat"
 ## Height of the stub left when a wall is cut away.
 const STUB := 0.35
 
@@ -26,6 +28,8 @@ var _cut_state := {}
 var _outside_root: Node3D
 var _structure: Node3D
 var _plot_root: Node3D
+## Wall group of the Hall of Fame's front wall (for its sign), -1 without a hall.
+var _hall_front := -1
 
 
 ## Builds the surroundings once and the building itself.
@@ -51,6 +55,7 @@ func rebuild() -> void:
 	add_child(_plot_root)
 	_walls.clear()
 	_cut_state.clear()
+	_hall_front = -1
 	_floors()
 	_walls_all()
 	_signs()
@@ -70,6 +75,14 @@ func _floors() -> void:
 	# Solid floor for the walkable area (building, plus the pavement out front).
 	var b := L.building()
 	Synty.solid(_structure, Vector3(b.get_center().x, -0.5, b.get_center().y), Vector3(b.size.x, 1.0, b.size.y))
+	if L.has_hall:
+		var h := L.hall()
+		var carpet := Synty.material(HALL_FLOOR_MATERIAL)
+		for ix in int(round(h.size.x / L.BAY)):
+			for iz in int(round(h.size.y / L.BAY)):
+				var tile := Synty.put(_structure, "Buildings/SM_Bld_Base_Floor_01", Vector3(h.position.x + ix * L.BAY, 0.0, h.position.y + iz * L.BAY))
+				Synty.paint(tile, carpet)
+		Synty.solid(_structure, Vector3(h.get_center().x, -0.5, h.get_center().y), Vector3(h.size.x, 1.0, h.size.y))
 	Synty.solid(_structure, Vector3(0, -0.5, L.Z0 - 2.0), Vector3(8.0, 1.0, 4.0))
 
 
@@ -93,8 +106,13 @@ func _walls_all() -> void:
 		back.append("wall")
 	_wall_run(Vector3(L.x0, 0, L.Z0), 0.0, show_kinds, SHOW_PAINT)  # front
 	_wall_run(Vector3(L.x1, 0, L.z1), 180.0, back, BACK_PAINT)  # back
-	# The side walls in two parts each, so each room gets its own paint.
-	_wall_run(Vector3(L.x1, 0, L.Z0), -90.0, side.slice(0, ns), SHOW_PAINT)
+	# The side walls in two parts each, so each room gets its own paint. With the Hall of
+	# Fame the east showroom wall has its door instead of windows.
+	var east_show: Array = side.slice(0, ns)
+	if L.has_hall:
+		for i in mini(3, ns):
+			east_show[i] = "door" if i == L.HALL_DOOR_BAY else "wall"
+	_wall_run(Vector3(L.x1, 0, L.Z0), -90.0, east_show, SHOW_PAINT)
 	_wall_run(Vector3(L.x1, 0, L.DIVIDER_Z), -90.0, side.slice(ns), BACK_PAINT, _walls.size() - 1)
 	var reversed_side := side.duplicate()
 	reversed_side.reverse()
@@ -102,6 +120,12 @@ func _walls_all() -> void:
 	_wall_run(Vector3(L.x0, 0, L.DIVIDER_Z), 90.0, reversed_side.slice(nb), SHOW_PAINT, _walls.size() - 1)
 	# The divider between the rooms.
 	_wall_run(Vector3(L.x0, 0, L.DIVIDER_Z), 0.0, divider, BACK_PAINT)
+	if L.has_hall:
+		var h := L.hall()
+		_hall_front = _walls.size()
+		_wall_run(Vector3(h.position.x, 0, L.Z0), 0.0, ["wall", "window", "wall"], HALL_PAINT)
+		_wall_run(Vector3(h.end.x, 0, L.Z0), -90.0, ["wall", "wall", "wall"], HALL_PAINT)
+		_wall_run(Vector3(h.end.x, 0, h.end.y), 180.0, ["wall", "wall", "wall"], HALL_PAINT)
 
 
 ## One straight wall of tiles starting at `from`, heading along local +X turned `yaw_deg`,
@@ -186,6 +210,8 @@ func _signs() -> void:
 	var front_x := L.FRONT_DOOR_X + L.BAY * 0.5
 	# Over the door, facing the street; it goes with the front wall when that is cut away.
 	_walls[0]["full"].append(BuildUtil.sign(_structure, "Fig Tree Fish Store", Vector3(front_x, 3.25, L.Z0 - 0.2), 180.0, 0.45))
+	if _hall_front >= 0:
+		_walls[_hall_front]["full"].append(BuildUtil.sign(_structure, "Hall of Fame", Vector3(L.hall().get_center().x, 3.25, L.Z0 - 0.2), 180.0, 0.4))
 
 
 # --- For-sale plots ---------------------------------------------------------------------
@@ -200,14 +226,16 @@ func _plots() -> void:
 		var pm := PlaneMesh.new()
 		pm.size = r.size
 		plane.mesh = pm
-		plane.material_override = grid_material(r.size, L.BAY, Color(1.0, 0.95, 0.6, 0.6), 0.08)
+		var col := Color(1.0, 0.75, 0.8, 0.7) if id == "hall" else Color(1.0, 0.95, 0.6, 0.6)
+		plane.material_override = grid_material(r.size, L.BAY, col, 0.08)
+		plane.position.y = 0.04 if id == "hall" else 0.03
 		plane.position = Vector3(r.get_center().x, 0.03, r.get_center().y)
 		plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_plot_root.add_child(plane)
 		var p: Dictionary = Data.PLOTS[id]
 		var tag := BuildUtil.label(_plot_root, "FOR SALE\n%s  $%s" % [p["name"], _commas(int(p["cost"]))],
-			Vector3(r.get_center().x, 1.8, r.get_center().y), 0.012)
-		tag.modulate = Color("#ffe07a")
+			Vector3(r.get_center().x, 2.6 if id == "hall" else 1.8, r.get_center().y), 0.012)
+		tag.modulate = Color("#ffb3c1") if id == "hall" else Color("#ffe07a")
 
 
 ## An unshaded see-through grid of `cell`-metre squares over an area of `size`.

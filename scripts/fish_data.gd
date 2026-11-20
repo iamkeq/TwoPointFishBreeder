@@ -9,6 +9,11 @@ extends RefCounted
 ## Varieties in LOCKED can't be bred or bought until a fish show unlocks them.
 
 const ADULT_AGE := 3
+## Days a fish lives, by species (each fish gets this +-15%, see lifespan()). Fish in the Hall
+## of Fame stop ageing.
+const LIFESPAN := {"guppy": 120, "neon": 100, "goldfish": 240, "betta": 150, "angelfish": 300, "discus": 300}
+## A valuable fish this close to the end gets a warning.
+const OLD_WARN_DAYS := 10
 const MUTATION_CHANCE := 0.015
 const RECIPE_CHANCE := 0.3
 
@@ -121,6 +126,17 @@ static func commons(species: String) -> Array:
 
 static func is_adult(f: Dictionary) -> bool:
 	return int(f.get("age", ADULT_AGE)) >= ADULT_AGE
+
+
+## How many days this fish lives (fixed per fish, from its id).
+static func lifespan(f: Dictionary) -> int:
+	var base := float(LIFESPAN.get(f.get("species", ""), 120))
+	var h := fposmod(float(int(f.get("id", 0))) * 0.6180339887, 1.0)
+	return int(round(base * (0.85 + 0.3 * h)))
+
+
+static func days_left(f: Dictionary) -> int:
+	return lifespan(f) - int(f.get("age", 0))
 
 
 static func recipe_child(species: String, a: String, b: String) -> String:

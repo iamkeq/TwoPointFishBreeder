@@ -21,6 +21,7 @@ signal started
 signal show_result(result: Dictionary)
 signal goals_changed
 signal autosave_wanted
+signal awards_changed
 
 ## Real seconds per game day at 1x speed.
 const DAY_SECONDS := 6.0
@@ -56,6 +57,8 @@ var loans: Array = []
 var extra_loans_taken := 0
 ## Plots bought ("west", "east", "back").
 var owned_plots: Array = []
+## Trophies from fish shows (top 3): {title, place, grand, day, fish}. Shown in the Hall of Fame.
+var awards: Array = []
 var start_choice := ""
 ## Testing: months roll on without pausing for the report.
 var autoplay := false
@@ -115,6 +118,11 @@ func from_dict(d: Dictionary) -> void:
 			set(key, v.duplicate(true) if (v is Dictionary or v is Array) else v)
 	if not d.has("first_steps"):
 		first_steps = ["keeper", "bred_on_show", "goldfish", "second_tank"]  # saves from before the checklist
+	if not d.has("awards"):
+		# Saves from before the Hall of Fame: a gold trophy for each show already won.
+		awards = []
+		for i in int(totals.get("shows_won", 0)):
+			awards.append({"title": "Fish Show", "place": 1, "grand": false, "fish": "", "day": 0})
 	money_changed.emit()
 	staff_changed.emit()
 	loans_changed.emit()
@@ -127,7 +135,7 @@ const SAVED := ["money", "day", "month", "year", "abs_day", "reputation", "marke
 	"pending_orders", "fish_storage", "staff", "_next_staff_id", "loans", "extra_loans_taken", "owned_plots",
 	"start_choice", "_next_loan_id", "stats", "last_report", "history", "totals", "discovered", "unlocked",
 	"achievements_done", "stars_earned", "show_entry", "show_number", "last_show", "_day_t", "_next_fish_id",
-	"showcase_peak", "first_steps"]
+	"showcase_peak", "first_steps", "awards"]
 
 
 func time_scale() -> float:
@@ -257,17 +265,61 @@ func add_bred(fry: Array) -> void:
 	fish_changed.emit()
 
 
-## Fry in storage grow up a day; their stars show once they're adults.
+## Fish in storage get a day older: fry grow up (their stars show once they're adults) and
+## old fish die.
 func _age_storage() -> void:
-	var grew := false
-	for f in fish_storage:
-		if not FishData.is_adult(f):
-			f["age"] = int(f.get("age", 0)) + 1
-			grew = true
-			if FishData.is_adult(f) and f.get("bred", false):
-				totals["best_stars"] = maxi(int(totals["best_stars"]), int(f["stars"]))
-	if grew:
-		fish_changed.emit()
+	for f in fish_storage.duplicate():
+		var was_fry := not FishData.is_adult(f)
+		if age_fish(f, "storage"):
+			fish_storage.erase(f)
+		elif was_fry and FishData.is_adult(f) and f.get("bred", false):
+			totals["best_stars"] = maxi(int(totals["best_stars"]), int(f["stars"]))
+	fish_changed.emit()
+
+
+## Fish that died today: [fish, where].
+var _deaths: Array = []
+
+
+## A fish gets a day older. True if it died of old age (the caller takes it out).
+## A valuable fish (4+ stars, a show ribbon, or `important`: one in a breeding tank) gets a
+## warning near the end.
+func age_fish(f: Dictionary, where: String, important: bool = false) -> bool:
+	f["age"] = int(f.get("age", 0)) + 1
+	var left := FishData.days_left(f)
+	if left <= 0:
+		if _deaths.is_empty():
+			_report_deaths.call_deferred()
+		_deaths.append([f, where])
+		add_stat("fish_died")
+		return true
+	if left <= FishData.OLD_WARN_DAYS and not f.get("old_warned", false) and FishData.is_adult(f) \
+			and (important or int(f["stars"]) >= 4 or int(f.get("ribbon", 0)) > 0):
+		f["old_warned"] = true
+		var keep := "Put it in the Hall of Fame to keep it forever." if owned_plots.has("hall") \
+			else "Buy the Hall of Fame (Expand) to keep fish like this forever."
+		if important and int(f["stars"]) < 4 and int(f.get("ribbon", 0)) == 0:
+			keep = "Breed a replacement soon."
+		notify.emit("%s (%s) is getting old: %d days left. %s" % [fish_label(f), where, left, keep])
+	return false
+
+
+func _report_deaths() -> void:
+	if _deaths.is_empty():
+		return
+	if _deaths.size() == 1:
+		var d: Array = _deaths[0]
+		notify.emit("🕊 %s died of old age (%s)" % [FishData.full_name(d[0], Data.SPECIES[d[0]["species"]]["name"]), d[1]])
+	else:
+		var names := {}
+		for d in _deaths:
+			var n := FishData.full_name(d[0], Data.SPECIES[d[0]["species"]]["name"])
+			names[n] = int(names.get(n, 0)) + 1
+		var parts: Array[String] = []
+		for n in names:
+			parts.append(("%d x %s" % [names[n], n]) if names[n] > 1 else n)
+		notify.emit("🕊 %d fish died of old age: %s" % [_deaths.size(), ", ".join(parts)])
+	_deaths.clear()
 
 
 ## Every fish you own that is out of the tanks (the world adds tank fish when asked).
@@ -714,6 +766,9 @@ func _run_show() -> void:
 		prizes.append("$%d" % cash)
 		change_reputation([6.0, 3.0, 1.5][place - 1] * (2.0 if grand else 1.0))
 		mine["ribbon"] = int(mine.get("ribbon", 0)) + 1
+		awards.append({"title": show_title(n), "place": place, "grand": grand, "day": abs_day,
+			"fish": FishData.full_name(mine, Data.SPECIES[mine["species"]]["name"])})
+		prizes.append("a %s trophy" % ["gold", "silver", "bronze"][place - 1])
 	if place == 1:
 		totals["shows_won"] = int(totals["shows_won"]) + 1
 		if grand:
@@ -734,6 +789,8 @@ func _run_show() -> void:
 	show_entry = {}
 	last_show = result
 	fish_changed.emit()
+	if place <= 3:
+		awards_changed.emit()
 	show_result.emit(result)
 
 

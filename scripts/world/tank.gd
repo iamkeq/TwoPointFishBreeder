@@ -88,7 +88,14 @@ func clean_factor() -> float:
 
 
 func needs_cleaning() -> bool:
+	if in_hall():
+		return false
 	return dirt >= Data.CLEAN_AT and not fish.is_empty() or dirt >= 50.0
+
+
+## Tanks in the Hall of Fame never get dirty and their fish never grow old (or get sold).
+func in_hall() -> bool:
+	return room() == "hall"
 
 
 ## Whether this is a breeding tank with a pair in it that's spawning (or would be).
@@ -146,6 +153,17 @@ func refund() -> int:
 	return int(def["cost"]) / 2
 
 
+## What this tank's fish add to the Hall of Fame's prestige (0 outside it).
+func hall_prestige() -> int:
+	if not in_hall():
+		return 0
+	var p := 0
+	for f in fish:
+		if FishData.is_adult(f):
+			p += int(f["stars"]) + 4 * int(f.get("ribbon", 0))
+	return p
+
+
 # --- Appeal and sales -----------------------------------------------------------------
 
 ## How attractive this tank is to customers (0 = bare, ~100 = superb).
@@ -178,7 +196,7 @@ func price_of(f: Dictionary) -> int:
 ## A customer decides whether to buy here. Returns the fish (taken out of the tank) and
 ## its price, or {} if they don't. Fry aren't for sale.
 func try_sell(rng: RandomNumberGenerator) -> Dictionary:
-	if is_breeding():
+	if is_breeding() or in_hall():
 		return {}
 	var adults := fish.filter(func(f): return FishData.is_adult(f))
 	if adults.is_empty():
@@ -219,14 +237,23 @@ func breeding_plan() -> Dictionary:
 
 
 func _on_day() -> void:
+	if in_hall():
+		if dirt > 0.0:
+			dirt = 0.0
+			_update_water()
+		return  # time stands still in the Hall of Fame
 	dirt = minf(100.0, dirt + Data.DIRT_PER_DAY + Data.DIRT_PER_FISH * fish.size())
 	_update_water()
-	# Fry in any tank grow up a day.
+	# Every fish gets a day older: fry grow, old fish die.
+	var dead: Array = []
 	for f in fish:
-		if not FishData.is_adult(f):
-			f["age"] = int(f.get("age", 0)) + 1
-			if _swimmers.has(int(f["id"])):
-				_swimmers[int(f["id"])].refresh_size()
+		var was_fry := not FishData.is_adult(f)
+		if Game.age_fish(f, display_name(), is_breeding()):
+			dead.append(int(f["id"]))
+		elif was_fry and _swimmers.has(int(f["id"])):
+			_swimmers[int(f["id"])].refresh_size()
+	for id in dead:
+		remove_fish(id)
 	if not is_breeding():
 		return
 	var p := breeding_plan()
@@ -262,6 +289,10 @@ func _on_day() -> void:
 func info_text() -> String:
 	var lines: Array[String] = []
 	lines.append("Fish: %d / %d" % [fish.size(), capacity()])
+	if in_hall():
+		lines.append("Hall of Fame: these fish never grow old and the water never gets dirty. They aren't for sale.")
+		lines.append("Prestige +%d (stars, plus 4 for each show ribbon)" % hall_prestige())
+		return "\n".join(lines)
 	var water := "clean" if dirt < Data.CLEAN_AT else ("a bit dirty" if dirt < 50.0 else ("dirty" if dirt < 75.0 else "filthy"))
 	lines.append("Water: %s (%d%%)" % [water, int(dirt)])
 	if dirt >= Data.CLEAN_AT and Game.staff_count("keeper") == 0:

@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.6.1** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.7.0** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -41,6 +41,17 @@ Version **0.6.1** (Godot 4.7.2, Forward+). This is the base system.
   more sales and up to +50% on the price.
 - **Fish** have a species, a variety, a sex (♂/♀) and 1-5 stars. Fry grow up in 3 days
   (stars show once they're adults) and can't be sold until then.
+- **Old age**: fish live about 4 months (guppies), 8 months (goldfish), each give or take 15%.
+  The close-up shows the days left and old fish get a ⏳. A fish with 4+ stars, a show ribbon,
+  or in a breeding tank gets a warning 10 days before the end, so you can breed a replacement
+  or move it to the Hall of Fame.
+- **Hall of Fame** (Expand, $6,000, +$80 rent): a small room built onto the east side of the
+  showroom, with a door from it (it moves out with you if you buy the east wing). Fish in its
+  tanks never grow old and the water never gets dirty; they aren't for sale. **Trophy
+  Cabinets** (Build > Hall of Fame) show your show trophies (gold, silver and bronze for 1st-3rd,
+  bigger from Grand Shows, best first, 9 per cabinet). The hall's **prestige** (each fish's
+  stars, +4 per show ribbon, plus 8/5/3 per trophy, doubled for Grand Shows) brings up to +50%
+  more customers, and some customers stop by to admire it.
 - **Breeding tanks** (back room only, 6 fish): only adults of one species breed; different
   species never cross. Each male fathers broods with up to 3 females, so broods =
   min(females, males x 3); more males than females halves it. A brood is 2-4 fry, every
