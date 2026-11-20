@@ -59,6 +59,8 @@ var extra_loans_taken := 0
 var owned_plots: Array = []
 ## Trophies from fish shows (top 3): {title, place, grand, day, fish}. Shown in the Hall of Fame.
 var awards: Array = []
+## The First steps checklist is folded down to its title bar.
+var steps_minimized := false
 var start_choice := ""
 ## Testing: months roll on without pausing for the report.
 var autoplay := false
@@ -135,7 +137,7 @@ const SAVED := ["money", "day", "month", "year", "abs_day", "reputation", "marke
 	"pending_orders", "fish_storage", "staff", "_next_staff_id", "loans", "extra_loans_taken", "owned_plots",
 	"start_choice", "_next_loan_id", "stats", "last_report", "history", "totals", "discovered", "unlocked",
 	"achievements_done", "stars_earned", "show_entry", "show_number", "last_show", "_day_t", "_next_fish_id",
-	"showcase_peak", "first_steps", "awards"]
+	"showcase_peak", "first_steps", "awards", "steps_minimized"]
 
 
 func time_scale() -> float:

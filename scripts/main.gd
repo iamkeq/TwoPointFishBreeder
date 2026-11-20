@@ -544,6 +544,8 @@ func _shoot(path: String) -> void:
 			if arg == "--hall-east":
 				Game.buy_plot("east")
 			print("HALL prestige=", hall_prestige(), " bonus=", hall_bonus(), " rect=", L.hall(), " tank_room=", t.room())
+		elif arg == "--steps-min":
+			Game.steps_minimized = true
 		elif arg == "--edit":
 			tool.toggle_edit(true)
 		elif arg == "--fishpop":

@@ -258,16 +258,28 @@ func _update_steps() -> void:
 	_steps.visible = Game.first_steps.size() < FIRST_STEPS.size() and not _side.visible and not _start.visible
 	if not _steps.visible:
 		return
-	var key := str(Game.first_steps)
+	var key := str(Game.first_steps) + str(Game.steps_minimized)
 	if _steps.get_meta("key", "") == key:
 		return
 	_steps.set_meta("key", key)
 	_clear(_steps_box)
+	var head := HBoxContainer.new()
+	_steps_box.add_child(head)
 	var h := Label.new()
-	h.text = "First steps"
+	h.text = "First steps" + ("  %d/%d" % [Game.first_steps.size(), FIRST_STEPS.size()] if Game.steps_minimized else "")
 	h.add_theme_color_override("font_color", C_ACCENT)
 	h.add_theme_font_size_override("font_size", 17)
-	_steps_box.add_child(h)
+	h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(h)
+	var fold := _button(head, "+" if Game.steps_minimized else "–", func():
+		Game.steps_minimized = not Game.steps_minimized
+		_update_steps())
+	fold.tooltip_text = "Show the checklist" if Game.steps_minimized else "Minimize the checklist"
+	fold.custom_minimum_size = Vector2(30, 26)
+	_steps.custom_minimum_size.x = 0 if Game.steps_minimized else 330
+	if Game.steps_minimized:
+		_steps.reset_size()
+		return
 	for s in FIRST_STEPS:
 		var done: bool = Game.first_steps.has(s[0])
 		var l := Label.new()
