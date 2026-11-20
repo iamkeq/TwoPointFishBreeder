@@ -108,13 +108,15 @@ Guppies use the hand-drawn sprite sheet from the guppy breeding game
 (`assets/fish/guppy_sheet.png`, one picture per variety; a few rare varieties reuse a
 close picture with a tint), in the menus and swimming in the tanks.
 
-Goldfish are real photos from Wikimedia Commons (CC0, public domain, CC BY and CC BY-SA),
-cut out of their backgrounds: one per variety in `assets/fish/goldfish_photos/`, packed into
-`assets/fish/goldfish_sheet.png` by `tools/build_goldfish_photos.py` (which also writes
-`scripts/goldfish_cells.gd`, the sprite positions). Authors and licences are in
-`assets/fish/CREDITS.md`; keep that file with the game when you share it. To swap a photo:
-`python tools/build_goldfish_photos.py cut <photo> <variety> [flip] [x0 y0 x1 y1] [bg=x0,y0,x1,y1]`,
-then `python tools/build_goldfish_photos.py`.
+Goldfish are pixel art (side view, facing right): one per variety in `assets/fish/goldfish_pixel/`,
+packed into `assets/fish/goldfish_pixel_sheet.png` by `tools/build_goldfish_pixel.py` (which also writes
+`scripts/goldfish_pixel_cells.gd`). They come from the shared set in
+`G:/Game Ideas/_shared-assets/fish/goldfish-pixel/` (30 fish, numbered); to swap a variety's picture,
+change its number in `PICKS` and run `python tools/build_goldfish_pixel.py --from-shared`.
+
+The earlier goldfish photos (Wikimedia Commons, credits in `assets/fish/CREDITS.md`) are still in
+`assets/fish/goldfish_photos/` and `goldfish_sheet.png` (built by `tools/build_goldfish_photos.py`),
+but the game no longer shows them.
 
 ## Screenshots
 

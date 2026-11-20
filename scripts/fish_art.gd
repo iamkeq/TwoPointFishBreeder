@@ -2,15 +2,16 @@ extends RefCounted
 ## Fish pictures, one per variety, facing right.
 ## Guppies: the hand-drawn sheet from the guppy breeding game (assets/fish/guppy_sheet.png);
 ## varieties without their own picture reuse a close one with a tint, as the guppy game does.
-## Goldfish: assets/fish/goldfish_sheet.png, cut-out Wikimedia Commons photos packed by
-## tools/build_goldfish_photos.py (credits in assets/fish/CREDITS.md).
+## Goldfish: assets/fish/goldfish_pixel_sheet.png, pixel art packed by tools/build_goldfish_pixel.py
+## (the older photo set, goldfish_sheet.png, is still built by
+## tools/build_goldfish_photos.py; credits in assets/fish/CREDITS.md).
 ## Other species have no sprites yet and are drawn by fish_icon.gd / shown as the 3D model.
 
 const SHEET_PATH := "res://assets/fish/guppy_sheet.png"
-const GOLDFISH_SHEET_PATH := "res://assets/fish/goldfish_sheet.png"
-const GoldfishCells := preload("res://scripts/goldfish_cells.gd")
-## Metres per sprite pixel in the tanks (a guppy picture is ~80 px, a goldfish photo ~190 px).
-const PIXEL_SIZE := {"guppy": 0.002, "goldfish": 0.00125}
+const GOLDFISH_SHEET_PATH := "res://assets/fish/goldfish_pixel_sheet.png"
+const GoldfishCells := preload("res://scripts/goldfish_pixel_cells.gd")
+## Metres per sprite pixel in the tanks (a guppy picture is ~80 px, a pixel-art goldfish ~225 px).
+const PIXEL_SIZE := {"guppy": 0.002, "goldfish": 0.00105}
 
 ## variety -> [x, y, w, h] on the sheet.
 const GUPPY := {

@@ -1,5 +1,8 @@
 # Fish photo credits
 
+The game now shows pixel-art goldfish (`goldfish_pixel/`, `goldfish_pixel_sheet.png`), made for
+this game; the photos below are no longer shown but are kept in the project.
+
 The goldfish pictures in `goldfish_photos/` and `goldfish_sheet.png` are cut out of photos from
 [Wikimedia Commons](https://commons.wikimedia.org). Each was cut out of its background, cropped, resized and
 in some cases mirrored. The cut-outs are under the same licence as the photo they came from; the
