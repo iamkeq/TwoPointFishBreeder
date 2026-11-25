@@ -32,6 +32,7 @@ var _patience := PATIENCE
 
 func setup(p_world: Node, seed_value: int) -> void:
 	world = p_world
+	walk_speed = 1.7
 	_rng.seed = seed_value
 	var roll := _rng.randf()
 	wants_fish = roll < 0.75

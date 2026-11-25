@@ -30,7 +30,7 @@ func _draw() -> void:
 	var c := size * 0.5 + Vector2(-size.x * 0.06, 0)
 	var rx := size.x * 0.3 * s
 	var ry := size.y * 0.3 * s
-	if fish["species"] == "angelfish" or fish["species"] == "discus":
+	if fish["species"] == "angelfish":
 		ry *= 1.5
 	# Tail: big and flowing for guppies, bettas and fancy goldfish.
 	var fancy: bool = fish["species"] == "guppy" or fish["species"] == "betta" or (fish["species"] == "goldfish" and v["kind"] != "common")

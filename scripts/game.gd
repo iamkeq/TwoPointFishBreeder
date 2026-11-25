@@ -122,6 +122,10 @@ func from_dict(d: Dictionary) -> void:
 			set(key, v.duplicate(true) if (v is Dictionary or v is Array) else v)
 	if not d.has("first_steps"):
 		first_steps = ["keeper", "bred_on_show", "goldfish", "second_tank"]  # saves from before the checklist
+	# Species taken out of the game (discus) leave old saves.
+	fish_storage = fish_storage.filter(func(f): return Data.SPECIES.has(f.get("species", "")))
+	if not show_entry.is_empty() and not Data.SPECIES.has(show_entry.get("species", "")):
+		show_entry = {}
 	if not d.has("awards"):
 		# Saves from before the Hall of Fame: a gold trophy for each show already won.
 		awards = []
@@ -761,7 +765,9 @@ func _run_show() -> void:
 	if show_entry.is_empty():
 		notify.emit("The %s went ahead without you" % show_title(n))
 		return
-	var strength := minf(110.0, 64.0 + 2.5 * (n - 1)) + (12.0 if grand else 0.0)
+	# Rivals improve every show but top out where your best fish (5 stars, a rare variety)
+	# can still win a Grand Show.
+	var strength := minf(98.0, 64.0 + 2.5 * (n - 1)) + (12.0 if grand else 0.0)
 	var entries: Array = []
 	var rivals := ["Mabel's Guppies", "Aqua Bros", "Finley Farms", "The Koi Club", "Reef & Co"]
 	for r in rivals:

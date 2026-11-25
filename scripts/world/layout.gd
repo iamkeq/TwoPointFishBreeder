@@ -113,7 +113,9 @@ static func room_rect(room: String) -> Rect2:
 	if room == "back":
 		r = backroom()
 	elif room == "hall":
-		r = hall() if has_hall else Rect2()
+		if not has_hall:
+			return Rect2()  # nothing fits in a hall you don't own
+		r = hall()
 	return r.grow(-WALL_MARGIN)
 
 

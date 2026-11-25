@@ -20,7 +20,7 @@ const SaveGame := preload("res://scripts/save_game.gd")
 
 ## Seconds (game time at 1x) between customers with no reputation or marketing.
 const BASE_SPAWN := 4.5
-const MAX_CUSTOMERS := 18
+const MAX_CUSTOMERS := 36
 
 var building: Node3D
 var nav: NavigationRegion3D
@@ -675,6 +675,28 @@ func _smart_player() -> void:
 			for f in Game.fish_storage.duplicate():
 				if f["species"] == "goldfish":
 					b.add_fish(Game.take_stored_fish(int(f["id"])))
+	# Keep breeding tanks going: retire old breeders, top up with young adults of the
+	# same species (1 male, 2 females), as a player would.
+	for b in objects().filter(func(o): return o is Tank and o.is_breeding()):
+		if not b.fish.is_empty():
+			b.set_meta("sp", b.fish[0]["species"])
+		var sp: String = b.get_meta("sp", "guppy")
+		for f in b.fish.duplicate():
+			if Data.FishData.days_left(f) <= 12:
+				Game.store_fish(b.remove_fish(int(f["id"])))
+		for sex in ["m", "f"]:
+			var want := 1 if sex == "m" else 2
+			var have: int = b.fish.filter(func(f): return f.get("sex", "m") == sex).size()
+			while have < want:
+				var pick: Dictionary = {}
+				for f in Game.fish_storage:
+					if f["species"] == sp and f.get("sex", "m") == sex and Data.FishData.is_adult(f) and Data.FishData.days_left(f) > 30:
+						if pick.is_empty() or int(f["stars"]) > int(pick["stars"]):
+							pick = f
+				if pick.is_empty():
+					break
+				b.add_fish(Game.take_stored_fish(int(pick["id"])))
+				have += 1
 	# Supplies: same as the plain test player.
 	for id in Data.PRODUCTS:
 		if int(Game.stockroom.get(id, 0)) + Game.units_ordered(id) < 12 and Game.money > 800:
@@ -702,7 +724,7 @@ func _smart_player() -> void:
 		var t := _build_free("tank_medium", "show")
 		if t != null:
 			_build_free("plant", "show", t.position)
-	print("DAY ", d, " hall=", hall_prestige(), " died=", Game.stats.get("fish_died", 0), " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
+	print("DAY ", d, " cust_in_shop=", customers_root.get_child_count(), " hall=", hall_prestige(), " died=", Game.stats.get("fish_died", 0), " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
 		" show_tanks=", shows.size(), " show_fish=", shows.reduce(func(a, o): return a + o.fish.size(), 0),
 		" appeal=", int(showroom_appeal()), " rate=", snappedf(customer_rate(), 0.01), " rep=", int(Game.reputation),
 		" dirt=", objects().filter(func(o): return o is Tank).map(func(o): return int(o.dirt)),
@@ -801,7 +823,7 @@ func _restore(w: Dictionary) -> void:
 			continue
 		var o := place(e["id"], Vector3(float(e["x"]), 0, float(e["z"])), int(e["rot"]))
 		if o is Tank:
-			for f in e.get("fish", []):
+			for f in e.get("fish", []).filter(func(x): return Data.SPECIES.has(x.get("species", ""))):
 				o.add_fish(f)
 			o.breed_days = int(e.get("breed_days", 0))
 			o.dirt = float(e.get("dirt", 0.0))

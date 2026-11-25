@@ -10,7 +10,6 @@ const SPECIES := {
 	"goldfish": {"name": "Goldfish", "price": 12, "color": Color("#f2b23d"), "size": 1.1},
 	"betta": {"name": "Betta", "price": 28, "color": Color("#c2352e"), "size": 1.0},
 	"angelfish": {"name": "Angelfish", "price": 40, "color": Color("#e8e4d8"), "size": 1.3},
-	"discus": {"name": "Discus", "price": 95, "color": Color("#3b6fd1"), "size": 1.4},
 }
 
 ## Price multiplier for 1 to 5 stars.

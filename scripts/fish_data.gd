@@ -11,7 +11,7 @@ extends RefCounted
 const ADULT_AGE := 3
 ## Days a fish lives, by species (each fish gets this +-15%, see lifespan()). Fish in the Hall
 ## of Fame stop ageing.
-const LIFESPAN := {"guppy": 120, "neon": 100, "goldfish": 240, "betta": 150, "angelfish": 300, "discus": 300}
+const LIFESPAN := {"guppy": 120, "neon": 100, "goldfish": 240, "betta": 150, "angelfish": 300}
 ## A valuable fish this close to the end gets a warning.
 const OLD_WARN_DAYS := 10
 const MUTATION_CHANCE := 0.015
@@ -73,7 +73,6 @@ const VARIETIES := {
 	"neon": {"normal": {"name": "", "color": "#3cc7f0", "accent": "#e0453a", "pattern": "stripes", "mult": 1.0, "kind": "common"}},
 	"betta": {"normal": {"name": "", "color": "#c2352e", "accent": "#3b6fd1", "pattern": "fade", "mult": 1.0, "kind": "common"}},
 	"angelfish": {"normal": {"name": "", "color": "#e8e4d8", "accent": "#202024", "pattern": "stripes", "mult": 1.0, "kind": "common"}},
-	"discus": {"normal": {"name": "", "color": "#3b6fd1", "accent": "#f08a2e", "pattern": "stripes", "mult": 1.0, "kind": "common"}},
 }
 
 ## [parent a, parent b, child] per species (either order).
@@ -108,7 +107,7 @@ const LOCKED := [["guppy", "galaxy"], ["goldfish", "lionhead"], ["goldfish", "pe
 const MARKET := {
 	"guppy": ["normal", "red", "blue", "yellow", "black", "white", "grass", "orange", "purple"],
 	"goldfish": ["common", "comet", "shubunkin", "fantail", "ryukin"],
-	"neon": ["normal"], "betta": ["normal"], "angelfish": ["normal"], "discus": ["normal"],
+	"neon": ["normal"], "betta": ["normal"], "angelfish": ["normal"],
 }
 
 
