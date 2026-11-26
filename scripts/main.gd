@@ -601,6 +601,24 @@ func _shoot(path: String) -> void:
 				Game.awards.append({"title": "Fish Show %d" % i, "place": 1 + i % 3, "grand": i % 5 == 0, "day": i, "fish": "Test fish"})
 			Game.awards_changed.emit()
 			print("AWARDS showroom=", building.showroom_award_points.size(), " appeal_near_tank=", int(decor_appeal_near(Vector3(-4, 0, -1))))
+		elif arg == "--award-click":
+			# Test only: click the first award on a wall, as the player would.
+			for i in 4:
+				await get_tree().physics_frame
+			for n in building._award_nodes:
+				if n.is_visible_in_tree():
+					var at: Vector2 = rig.camera.unproject_position(n.global_position)
+					var got: Dictionary = tool._pick_award(at)
+					print("CLICK at ", at, " -> ", got.get("title", "nothing"), " place ", got.get("place", 0))
+					if not got.is_empty():
+						hud.show_award(got)
+					break
+		elif arg.begins_with("--award-pop="):
+			var which := int(arg.substr(12))
+			var a: Dictionary = [{"title": "Grand Show 4", "place": 1, "grand": true, "day": 112, "fish": "Orange Guppy"},
+				{"title": "Fish Show 7: Guppy class", "place": 1, "grand": false, "day": 98, "fish": "Sunset Guppy"},
+				{"title": "Fish Show 9", "place": 2, "grand": false, "day": 126, "fish": "Ryukin Goldfish"}][which]
+			hud.show_award.call_deferred(a)
 		elif arg == "--steps-min":
 			Game.steps_minimized = true
 		elif arg == "--edit":

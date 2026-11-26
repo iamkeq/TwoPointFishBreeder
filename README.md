@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.7.3** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.7.4** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -56,7 +56,8 @@ Version **0.7.3** (Godot 4.7.2, Forward+). This is the base system.
   wooden plaque for a Grand Show win, a framed certificate for a 1st, a red or yellow rosette for
   2nd or 3rd. They go round the Hall of Fame first (if you have it), then on the showroom's side
   walls between the windows, then along the divider. Each award in the showroom adds 3 appeal to
-  tanks within 4 m (up to +20 a tank).
+  tanks within 4 m (up to +20 a tank). **Click any award** for a close-up you can read: the
+  show, the placing, the fish and the date.
 - **Breeding tanks** (back room only, 6 fish): only adults of one species breed; different
   species never cross. Each male fathers broods with up to 3 females, so broods =
   min(females, males x 3); more males than females halves it. A brood is 2-4 fry, every

@@ -252,7 +252,7 @@ func refresh_awards() -> void:
 	var slots := _award_slots()
 	for i in mini(list.size(), slots.size()):
 		var s: Array = slots[i]
-		var node := WallAward.make(list[i])
+		var node := WallAward.make(list[i], true)
 		node.position = s[0]
 		node.rotation.y = deg_to_rad(s[1])
 		_structure.add_child(node)

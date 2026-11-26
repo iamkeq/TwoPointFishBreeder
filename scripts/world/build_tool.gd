@@ -133,7 +133,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				if obj != null:
 					start_move(obj)
 			else:
-				select(_pick(mb.position))
+				var award := _pick_award(mb.position)
+				if not award.is_empty():
+					world.hud.show_award(award)
+				else:
+					select(_pick(mb.position))
 			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT:
 			if _ghost != null:
@@ -222,6 +226,22 @@ func _confirm() -> void:
 	world.place(id, _ghost.position, _rot)
 	# Keep placing more of the same (shift not needed), like the sim games.
 	_update_ghost(get_viewport().get_mouse_position())
+
+
+## The show award on a wall under the mouse ({} if none).
+func _pick_award(screen: Vector2) -> Dictionary:
+	var cam: Camera3D = rig.camera
+	var from := cam.project_ray_origin(screen)
+	var q := PhysicsRayQueryParameters3D.create(from, from + cam.project_ray_normal(screen) * 300.0, 8)
+	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return {}
+	var n: Node = hit["collider"]
+	while n != null and not n.has_meta("award"):
+		n = n.get_parent()
+	if n == null or not (n as Node3D).is_visible_in_tree():
+		return {}
+	return n.get_meta("award")
 
 
 func _pick(screen: Vector2) -> Node3D:

@@ -8,6 +8,7 @@ const Tank := preload("res://scripts/world/tank.gd")
 const Shelf := preload("res://scripts/world/shelf.gd")
 const FishData := preload("res://scripts/fish_data.gd")
 const L := preload("res://scripts/world/layout.gd")
+const WallAward := preload("res://scripts/world/wall_award.gd")
 const Genetics := preload("res://scripts/genetics.gd")
 const Goals := preload("res://scripts/goals.gd")
 const FishIcon := preload("res://scripts/ui/fish_icon.gd")
@@ -1183,6 +1184,69 @@ func _after_fish_move(msg: String, id: int) -> void:
 	_refresh_selection()
 	_refresh_side()
 	_fish_details(id)
+
+
+## Pop-up: a show award up close (a slowly turning 3D view you can read) and its details.
+func show_award(a: Dictionary) -> void:
+	_clear(_modal)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	_modal.add_child(box)
+	var kinds := {"plaque": "Grand Show Champion's plaque", "certificate": "First place certificate", "rosette": "Show rosette"}
+	_heading(box, kinds[WallAward.kind(a)], 22)
+	var view := SubViewportContainer.new()
+	view.stretch = true
+	view.custom_minimum_size = Vector2(500, 380)
+	box.add_child(view)
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.msaa_3d = Viewport.MSAA_4X
+	view.add_child(vp)
+	var env := WorldEnvironment.new()
+	env.environment = Environment.new()
+	env.environment.background_mode = Environment.BG_COLOR
+	env.environment.background_color = Color("#3a2a2e") if WallAward.kind(a) != "rosette" else Color("#2c3e48")
+	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.environment.ambient_light_color = Color(1, 1, 1)
+	env.environment.ambient_light_energy = 0.55
+	vp.add_child(env)
+	var spin := Node3D.new()
+	vp.add_child(spin)
+	spin.add_child(WallAward.make(a))
+	var light := DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-30, 20, 0)
+	light.light_energy = 1.1
+	vp.add_child(light)
+	var cam := Camera3D.new()
+	cam.position = Vector3(0, 0, {"plaque": 0.68, "certificate": 0.5, "rosette": 0.6}[WallAward.kind(a)])
+	cam.fov = 45
+	vp.add_child(cam)
+	# A gentle sway so the gold catches the light, without turning the writing away.
+	var tw := spin.create_tween().set_loops()
+	tw.tween_property(spin, "rotation:y", 0.25, 2.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(spin, "rotation:y", -0.25, 2.5).set_trans(Tween.TRANS_SINE)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 24)
+	box.add_child(grid)
+	var rows := [
+		["Show", a.get("title", "Fish Show")],
+		["Placing", WallAward.PLACE_WORDS[clampi(int(a.get("place", 1)), 1, 3) - 1] + ("  (Grand Show)" if a.get("grand", false) else "")],
+		["Fish", a.get("fish", "") if a.get("fish", "") != "" else "Not recorded"],
+		["Date", WallAward.date(a) if WallAward.date(a) != "" else "Not recorded"],
+	]
+	for row in rows:
+		var k := Label.new()
+		k.text = row[0]
+		k.add_theme_color_override("font_color", Color("#a9c6cf"))
+		grid.add_child(k)
+		var v := Label.new()
+		v.text = row[1]
+		grid.add_child(v)
+	var close := _button(box, "Close", func(): _modal.visible = false)
+	close.custom_minimum_size.y = 36
+	_pop(_modal)
 
 
 ## Show a centred pop-up. Wrapped text only knows its height once laid out at its real

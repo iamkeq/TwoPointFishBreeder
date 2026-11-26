@@ -159,6 +159,12 @@ func date_text() -> String:
 	return "%d %s, Year %d" % [day, MONTHS[month], year]
 
 
+## The date of day number `n` (abs_day 1 is 1 January, Year 1).
+static func date_of(n: int) -> String:
+	var d := maxi(n, 1) - 1
+	return "%d %s, Year %d" % [d % DAYS_PER_MONTH + 1, MONTHS[(d / DAYS_PER_MONTH) % 12], d / (DAYS_PER_MONTH * 12) + 1]
+
+
 func day_fraction() -> float:
 	return _day_t / DAY_SECONDS
 

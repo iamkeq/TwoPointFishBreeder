@@ -6,6 +6,18 @@ extends RefCounted
 
 const ROSETTE_COLORS := [Color("#2f62d0"), Color("#d0342f"), Color("#e8c23a")]
 const GOLD := Color("#e9bf3c")
+## Collision layer of the click targets on the awards (picked apart from placeables).
+const PICK_LAYER := 8
+const PLACES := ["1st", "2nd", "3rd"]
+const PLACE_WORDS := ["First Place", "Second Place", "Third Place"]
+
+
+static func title(a: Dictionary) -> String:
+	return "%s, %s" % [a.get("title", "Fish Show"), PLACE_WORDS[clampi(int(a.get("place", 1)), 1, 3) - 1]]
+
+
+static func date(a: Dictionary) -> String:
+	return Game.date_of(int(a.get("day", 0))) if int(a.get("day", 0)) > 0 else ""
 
 
 static func kind(a: Dictionary) -> String:
@@ -15,25 +27,67 @@ static func kind(a: Dictionary) -> String:
 	return "rosette"
 
 
-static func make(a: Dictionary) -> Node3D:
+## The award as a model, with its writing. `clickable` adds a click target (on the wall).
+static func make(a: Dictionary, clickable: bool = false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Award"
+	root.set_meta("award", a)
 	var place := clampi(int(a.get("place", 1)), 1, 3)
+	var fish: String = a.get("fish", "")
+	var size := Vector3(0.3, 0.42, 0.06)
 	match kind(a):
 		"plaque":
+			size = Vector3(0.42, 0.52, 0.06)
 			_box(root, Vector3(0.42, 0.52, 0.04), Vector3(0, 0, 0.02), _mat(Color("#5a3420"), 0.0, 0.5))
 			_box(root, Vector3(0.34, 0.44, 0.045), Vector3(0, 0, 0.022), _mat(Color("#7a4a2c"), 0.0, 0.45))
-			_box(root, Vector3(0.28, 0.1, 0.05), Vector3(0, -0.12, 0.03), _mat(GOLD, 0.85, 0.25))
-			_disc(root, 0.08, 0.02, Vector3(0, 0.08, 0.05), _mat(GOLD, 0.85, 0.25), 5)
+			_box(root, Vector3(0.3, 0.13, 0.05), Vector3(0, -0.13, 0.03), _mat(GOLD, 0.85, 0.25))
+			_disc(root, 0.07, 0.02, Vector3(0, 0.12, 0.05), _mat(GOLD, 0.85, 0.25), 5)
+			_text(root, "GRAND SHOW\nCHAMPION", Vector3(0, 0.02, 0.046), 50, GOLD.lightened(0.2), 0.3)
+			_text(root, "%s\n%s\n%s" % [a.get("title", "Grand Show"), fish, date(a)], Vector3(0, -0.13, 0.056), 38, Color("#3a2410"), 0.28)
 		"certificate":
+			size = Vector3(0.46, 0.34, 0.06)
 			_box(root, Vector3(0.46, 0.34, 0.03), Vector3(0, 0, 0.015), _mat(Color("#2b1c12"), 0.0, 0.5))
 			_box(root, Vector3(0.4, 0.28, 0.035), Vector3(0, 0, 0.018), _mat(Color("#f4ecd6"), 0.0, 0.9))
-			for i in 3:  # lines of writing
-				_box(root, Vector3(0.26 - i * 0.04, 0.012, 0.037), Vector3(-0.03, 0.08 - i * 0.05, 0.02), _mat(Color("#8a7a66"), 0.0, 0.9))
-			_rosette(root, ROSETTE_COLORS[0], Vector3(0.13, -0.07, 0.04), 0.55)
+			_text(root, "Certificate of Excellence", Vector3(0, 0.105, 0.037), 40, Color("#6a1f1f"), 0.38)
+			_text(root, "First Place", Vector3(0, 0.055, 0.037), 54, Color("#2a2a2a"), 0.38)
+			_text(root, "%s\n%s\n%s" % [a.get("title", "Fish Show"), fish, date(a)], Vector3(-0.045, -0.05, 0.037), 36, Color("#3a3a3a"), 0.28)
+			_rosette(root, ROSETTE_COLORS[0], Vector3(0.14, -0.07, 0.04), 0.5)
 		_:
-			_rosette(root, ROSETTE_COLORS[place - 1], Vector3.ZERO, 1.3 if a.get("grand", false) else 1.0)
+			var s := 1.3 if a.get("grand", false) else 1.0
+			size *= s
+			_rosette(root, ROSETTE_COLORS[place - 1], Vector3.ZERO, s)
+			_text(root, PLACES[place - 1], Vector3(0, 0, 0.055 * s), 40, Color("#3a2410"), 0.06)
+	if clickable:
+		var body := StaticBody3D.new()
+		body.collision_layer = PICK_LAYER
+		body.collision_mask = 0
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+		shape.position = Vector3(0, -0.02, size.z * 0.5)
+		body.add_child(shape)
+		root.add_child(body)
 	return root
+
+
+## Flat writing on the award's face (+Z), wrapped to `width` metres.
+static func _text(parent: Node3D, t: String, at: Vector3, font: int, color: Color, width: float) -> Label3D:
+	var l := Label3D.new()
+	l.text = t
+	l.position = at
+	l.pixel_size = 0.0004
+	l.font_size = font
+	l.outline_size = 0
+	l.modulate = color
+	l.double_sided = false
+	l.shaded = false
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.width = width / l.pixel_size
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.render_priority = 1
+	parent.add_child(l)
+	return l
 
 
 static func _rosette(parent: Node3D, color: Color, at: Vector3, s: float) -> void:
