@@ -45,7 +45,7 @@ const ACHIEVEMENTS := [
 	["grand_win", "Best in Show", "Win a Grand Show", "grand_won", 1],
 	["shows_5", "Show Regular", "Win 5 fish shows", "shows_won", 5],
 	["expand", "Room to Grow", "Buy a plot of land", "plots", 1],
-	["expand_all", "Fish Empire", "Own every plot", "plots", 3],
+	["expand_all", "Fish Empire", "Own every plot", "plots", 7],
 	["team", "Dream Team", "Have 5 staff", "staff", 5],
 	["debt_free", "Debt Free", "Pay off a loan", "loans_paid", 1],
 	["showcase_3", "Gallery", "Showcase 3 tanks at once", "showcases", 3],

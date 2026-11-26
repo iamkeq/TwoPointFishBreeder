@@ -10,7 +10,7 @@ const ZOOM_MIN := 7.0
 const ZOOM_MAX := 42.0
 const PITCH_NEAR := 42.0
 const PITCH_FAR := 58.0
-const BOUNDS := Rect2(-24.0, -16.0, 52.0, 42.0)
+const BOUNDS := Rect2(-30.0, -16.0, 66.0, 48.0)
 
 var camera: Camera3D
 var yaw := 30.0

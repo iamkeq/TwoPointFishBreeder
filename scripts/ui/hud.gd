@@ -437,7 +437,7 @@ func _item_blurb(def: Dictionary) -> String:
 	var rooms := " / ".join(PackedStringArray(def["rooms"].map(func(r): return L.room_name(r).capitalize() if r != "hall" else "Hall of Fame")))
 	match def["kind"]:
 		"tank":
-			return "Holds %d fish. Base appeal %d. %s" % [def["capacity"], int(def["appeal"]), rooms]
+			return "Holds %d fish. Base appeal %d. Costs $%d/month to run. %s" % [def["capacity"], int(def["appeal"]), int(def.get("upkeep", 0)), rooms]
 		"breeding":
 			return "Breeds a pair of fish into fry. %s only" % rooms
 		"holding":
@@ -671,7 +671,8 @@ func _staff_panel() -> void:
 		v.add_theme_constant_override("separation", 0)
 		box.add_child(v)
 		var name_l := Label.new()
-		name_l.text = "%s  ·  %s  ·  $%d/mo" % [person["name"], r["name"], person["wage"]]
+		name_l.text = "%s  ·  %s  ·  $%d/mo%s" % [person["name"], r["name"], person["wage"],
+			"  (%d months)" % int(person.get("months", 0)) if int(person.get("months", 0)) > 0 else ""]
 		name_l.add_theme_color_override("font_color", r["color"])
 		v.add_child(name_l)
 		var task := Label.new()
@@ -718,6 +719,12 @@ func _expand_panel() -> void:
 		box.add_child(lab)
 		if id == "hall" and Game.owned_plots.has(id):
 			lab.text += "\nPrestige %d: +%d%% customers" % [world.hall_prestige(), int(world.hall_bonus() * 100.0)]
+		if not Game.owned_plots.has(id) and not Game.can_buy_plot(id):
+			var lock := Label.new()
+			lock.text = "Needs the\n%s" % Data.PLOTS[p["needs"]]["name"]
+			lock.add_theme_color_override("font_color", Color("#a9c6cf"))
+			box.add_child(lock)
+			continue
 		if Game.owned_plots.has(id):
 			var done := Label.new()
 			done.text = "Owned"
@@ -1507,7 +1514,7 @@ func _show_report(r: Dictionary) -> void:
 	]
 	var names := {"fish_sales": "Fish sales", "supply_sales": "Supply sales", "refunds": "Things sold back",
 		"construction": "Building", "supplies": "Supply orders", "fish_orders": "Fish orders", "rent": "Rent",
-		"marketing": "Marketing", "showcase": "Showcase upkeep", "wages": "Staff wages", "loans": "Loan money received", "loan_repayments": "Loan repayments", "expansion": "Expansion", "discoveries": "New variety bonuses", "show_prizes": "Show prizes", "goal_rewards": "Goal rewards", "market_sales": "Fish sold to the market"}
+		"marketing": "Marketing", "showcase": "Showcase upkeep", "wages": "Staff wages", "loans": "Loan money received", "loan_repayments": "Loan repayments", "expansion": "Expansion", "discoveries": "New variety bonuses", "show_prizes": "Show prizes", "goal_rewards": "Goal rewards", "market_sales": "Fish sold to the market", "tank_upkeep": "Tank running costs", "tax": "Business tax"}
 	for k in r["income"]:
 		rows.append([names.get(k, k), "+$" + _commas(int(r["income"][k]))])
 	for k in r["expenses"]:

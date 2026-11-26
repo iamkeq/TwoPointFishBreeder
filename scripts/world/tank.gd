@@ -295,7 +295,7 @@ func _on_day() -> void:
 
 func info_text() -> String:
 	var lines: Array[String] = []
-	lines.append("Fish: %d / %d" % [fish.size(), capacity()])
+	lines.append("Fish: %d / %d   ·   running cost $%d/month" % [fish.size(), capacity(), int(def.get("upkeep", 0))])
 	if is_holding():
 		lines.append("Fish bought from the market arrive here. Nothing breeds in a holding tank: move fish to a breeding tank or a display tank.")
 	if in_hall():

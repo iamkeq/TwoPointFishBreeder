@@ -37,15 +37,15 @@ const PRODUCTS := {
 ## `appeal`: how much it adds to tanks within APPEAL_RADIUS (decor) or the tank's own base.
 const ITEMS := {
 	"tank_small": {"name": "Small Tank", "cat": "Tanks", "cost": 150, "size": Vector2(1.0, 0.5),
-		"kind": "tank", "capacity": 4, "appeal": 5.0, "height": 1.15, "rooms": ["show", "back", "hall"]},
+		"kind": "tank", "capacity": 4, "upkeep": 10, "appeal": 5.0, "height": 1.15, "rooms": ["show", "back", "hall"]},
 	"tank_medium": {"name": "Medium Tank", "cat": "Tanks", "cost": 350, "size": Vector2(1.5, 0.75),
-		"kind": "tank", "capacity": 8, "appeal": 12.0, "height": 1.3, "rooms": ["show", "back", "hall"]},
+		"kind": "tank", "capacity": 8, "upkeep": 20, "appeal": 12.0, "height": 1.3, "rooms": ["show", "back", "hall"]},
 	"tank_large": {"name": "Large Tank", "cat": "Tanks", "cost": 800, "size": Vector2(2.5, 1.0),
-		"kind": "tank", "capacity": 14, "appeal": 25.0, "height": 1.45, "rooms": ["show", "back", "hall"]},
+		"kind": "tank", "capacity": 14, "upkeep": 35, "appeal": 25.0, "height": 1.45, "rooms": ["show", "back", "hall"]},
 	"tank_holding": {"name": "Holding Tank (200 gal)", "cat": "Tanks", "cost": 500, "size": Vector2(2.5, 1.0),
-		"kind": "holding", "capacity": 20, "appeal": 0.0, "height": 1.45, "rooms": ["back"]},
+		"kind": "holding", "capacity": 20, "upkeep": 25, "appeal": 0.0, "height": 1.45, "rooms": ["back"]},
 	"tank_breeding": {"name": "Breeding Tank", "cat": "Tanks", "cost": 400, "size": Vector2(1.5, 0.75),
-		"kind": "breeding", "capacity": 6, "appeal": 0.0, "height": 1.2, "rooms": ["back"]},
+		"kind": "breeding", "capacity": 6, "upkeep": 15, "appeal": 0.0, "height": 1.2, "rooms": ["back"]},
 	"shelf": {"name": "Supply Shelf", "cat": "Shelves", "cost": 200, "size": Vector2(2.0, 0.75),
 		"kind": "shelf", "slots": 3, "capacity": 6, "model": "Props/SM_Prop_Shop_Shelf_Basic_01", "rooms": ["show"]},
 	"shelf_small": {"name": "Small Shelf", "cat": "Shelves", "cost": 120, "size": Vector2(1.0, 0.5),
@@ -113,6 +113,12 @@ const BREED_DIRT_LIMIT := 60.0
 const CLEAN_AT := 20.0
 
 const RENT := 350
+## Business tax: this share of each month's operating profit (nothing in a losing month).
+const TAX_RATE := 0.25
+## Staff earn this much more for every month they've worked for you, up to STAFF_RAISE_CAP
+## times their starting wage.
+const STAFF_RAISE := 0.04
+const STAFF_RAISE_CAP := 1.6
 ## Cash in hand at the start, before any loan.
 const START_MONEY := 5000
 
@@ -134,6 +140,9 @@ const PLOTS := {
 	"west": {"name": "West wing", "cost": 9000, "rent": 120, "desc": "3 bays more width on the left, for both rooms."},
 	"east": {"name": "East wing", "cost": 9000, "rent": 120, "desc": "3 bays more width on the right, for both rooms."},
 	"back": {"name": "Rear extension", "cost": 12000, "rent": 150, "desc": "3 bays more depth for the back room."},
+	"west2": {"name": "Far west wing", "cost": 16000, "rent": 180, "needs": "west", "desc": "3 more bays on the left, past the west wing."},
+	"east2": {"name": "Far east wing", "cost": 16000, "rent": 180, "needs": "east", "desc": "3 more bays on the right, past the east wing (the Hall of Fame moves out with it)."},
+	"back2": {"name": "Second rear extension", "cost": 20000, "rent": 220, "needs": "back", "desc": "3 more bays of back room behind the rear extension."},
 	"hall": {"name": "Hall of Fame", "cost": 6000, "rent": 80, "desc": "A small room off the showroom for your best fish and your show trophies. Fish in it never grow old and its tanks never get dirty. Customers come to see it."},
 }
 

@@ -3,9 +3,10 @@ extends RefCounted
 ## The lot is a grid of bays. You start with the middle of it:
 ##   showroom   x -11.25..11.25, z -7.5..5     (front door in the middle of the front wall)
 ##   back room  x -11.25..11.25, z 5..12.5     (door through the divider at x 6.25..8.75)
-## and can buy up to three plots: a west wing and an east wing (3 bays wide, both rooms
-## grow sideways) and a rear extension (3 bays deep, the back room grows). The building
-## always stays a rectangle: a wing bought after the rear extension covers that corner too.
+## and can buy plots: west and east wings (3 bays wide each, both rooms grow sideways), each
+## with a far wing beyond it, and a rear extension (3 bays deep, the back room grows) with a
+## second one behind it. The building always stays a rectangle: a wing bought after a rear
+## extension covers that corner too.
 ## The Hall of Fame is a small room (3 x 3 bays) built onto the east wall at the front, with a
 ## door from the showroom. It sits outside that rectangle and moves out if the east wing is bought.
 
@@ -25,7 +26,7 @@ const HALL_DOOR_BAY := 1
 const FRONT_DOOR_X := -1.25
 const DIVIDER_DOOR_X := 6.25
 ## Everything you could ever own.
-const LOT := Rect2(BASE_X0 - WING, Z0, (BASE_X1 - BASE_X0) + WING * 2.0 + HALL_W, (BASE_Z1 + WING) - Z0)
+const LOT := Rect2(BASE_X0 - WING * 2.0, Z0, (BASE_X1 - BASE_X0) + WING * 4.0 + HALL_W, (BASE_Z1 + WING * 2.0) - Z0)
 ## How far in from the wall line things may stand.
 const WALL_MARGIN := 0.15
 
@@ -40,30 +41,36 @@ static var z1 := BASE_Z1
 static var has_hall := false
 
 
-## Set the extent from the plots owned ("west", "east", "back").
+## How many of these plots are owned.
+static func _count(owned: Array, ids: Array) -> int:
+	return ids.filter(func(i): return owned.has(i)).size()
+
+
+## Set the extent from the plots owned ("west", "west2", "east", "east2", "back", "back2", "hall").
 static func apply_plots(owned: Array) -> void:
-	x0 = BASE_X0 - (WING if owned.has("west") else 0.0)
-	x1 = BASE_X1 + (WING if owned.has("east") else 0.0)
-	z1 = BASE_Z1 + (WING if owned.has("back") else 0.0)
+	x0 = BASE_X0 - WING * _count(owned, ["west", "west2"])
+	x1 = BASE_X1 + WING * _count(owned, ["east", "east2"])
+	z1 = BASE_Z1 + WING * _count(owned, ["back", "back2"])
 	has_hall = owned.has("hall")
 
 
-## The area a plot adds, given what else is owned (for the for-sale markers).
+## The area a plot adds to the building as it is now (for the for-sale markers; only the
+## next plot on each side is offered).
 static func plot_rect(id: String, owned: Array) -> Rect2:
-	var wx0 := BASE_X0 - (WING if owned.has("west") else 0.0)
-	var wx1 := BASE_X1 + (WING if owned.has("east") else 0.0)
-	var wz1 := BASE_Z1 + (WING if owned.has("back") else 0.0)
+	var wx0 := BASE_X0 - WING * _count(owned, ["west", "west2"])
+	var wx1 := BASE_X1 + WING * _count(owned, ["east", "east2"])
+	var wz1 := BASE_Z1 + WING * _count(owned, ["back", "back2"])
 	match id:
-		"west":
-			return Rect2(BASE_X0 - WING, Z0, WING, wz1 - Z0)
-		"east":
+		"west", "west2":
+			return Rect2(wx0 - WING, Z0, WING, wz1 - Z0)
+		"east", "east2":
 			if owned.has("hall"):  # the hall stands on its front part until the wing pushes it out
-				return Rect2(BASE_X1, Z0 + HALL_D, WING, wz1 - Z0 - HALL_D)
-			return Rect2(BASE_X1, Z0, WING, wz1 - Z0)
+				return Rect2(wx1, Z0 + HALL_D, WING, wz1 - Z0 - HALL_D)
+			return Rect2(wx1, Z0, WING, wz1 - Z0)
 		"hall":
 			return Rect2(wx1, Z0, HALL_W, HALL_D)
 		_:
-			return Rect2(wx0, BASE_Z1, wx1 - wx0, WING)
+			return Rect2(wx0, wz1, wx1 - wx0, WING)
 
 
 static func bays_x() -> int:

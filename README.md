@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.8.1** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.9.0** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -110,14 +110,18 @@ Version **0.8.1** (Godot 4.7.2, Forward+). This is the base system.
   $250 for each of: hire a Fish Keeper, put a bred fish on display, breed the goldfish,
   build a second display tank. Its – button folds it down to a title bar.
 - **Marketing** (flyers, newspaper, radio) brings in more customers for a monthly fee.
-- **Monthly report**: customers, happy/disappointed, sales, costs (rent $350 plus $120-150
-  per plot bought) and profit. Reputation settles at about the share of customers who
+- **Monthly report**: customers, happy/disappointed, sales, costs and profit. Costs: rent ($350
+  plus $80-220 per plot bought), staff wages, **tank running costs** ($10-35 a month each, by
+  size), showcases, marketing and **business tax** (25% of the month's operating profit; nothing
+  in a losing month). **Staff get a pay rise** of 4% of their starting wage for every month they
+  stay, up to +60%. Reputation settles at about the share of customers who
   leave happy (each visit pulls it 2% of the way); new varieties and show wins lift it
   for a while.
 - **Start**: no debt ($5,000), a small loan (+$8,000) or a large loan (+$25,000), repaid
   monthly. After 3 months of trading the **Bank** lends up to 2 more loans; pay any off early.
 - **Expand**: the lot is a grid of 2.5 m bays. Buy the west wing, east wing and rear
-  extension (yellow FOR SALE grids) to grow the building. The street, neighbours, a fence,
+  extension (yellow FOR SALE grids) to grow the building, then the far west wing, far east wing
+  ($16,000 each) and a second rear extension ($20,000) beyond them. The street, neighbours, a fence,
   alleys and a park surround the lot.
 - **Goals (G)**: three star ratings, each a set of targets (customers, fish bred, new
   varieties, operating profit, show wins, a 5★ fish) with a cash reward, plus 24 achievements.

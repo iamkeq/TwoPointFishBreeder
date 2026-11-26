@@ -435,12 +435,21 @@ func buy_plot(id: String) -> bool:
 	if owned_plots.has(id):
 		return false
 	var p: Dictionary = Data.PLOTS[id]
+	if not can_buy_plot(id):
+		notify.emit("Buy the %s first" % Data.PLOTS[p["needs"]]["name"])
+		return false
 	if not spend(int(p["cost"]), "expansion"):
 		return false
 	owned_plots.append(id)
 	notify.emit("Bought the %s! Rent goes up $%d a month." % [p["name"], p["rent"]])
 	plots_changed.emit()
 	return true
+
+
+## A plot is for sale once the one it builds on (if any) is owned.
+func can_buy_plot(id: String) -> bool:
+	var needs: String = Data.PLOTS[id].get("needs", "")
+	return not owned_plots.has(id) and (needs == "" or owned_plots.has(needs))
 
 
 func rent() -> int:
@@ -625,6 +634,8 @@ func set_marketing(id: String) -> void:
 
 ## Showcased tanks are counted by the world and passed in so their upkeep is billed.
 var showcase_count := 0
+## Monthly running costs of every tank (heating, filters, lights); the world keeps it current.
+var tank_upkeep := 0
 
 
 func _end_month() -> void:
@@ -636,6 +647,13 @@ func _end_month() -> void:
 		_repay_loans()
 	if showcase_count > 0:
 		_force_spend(Data.SHOWCASE_UPKEEP * showcase_count, "showcase")
+	if tank_upkeep > 0:
+		_force_spend(tank_upkeep, "tank_upkeep")
+	# Tax on the month's operating profit, once everything else is paid.
+	var taxable := _operating_profit(stats)
+	if taxable > 0:
+		_force_spend(int(round(taxable * Data.TAX_RATE)), "tax")
+	_pay_rises()
 	var report := stats.duplicate(true)
 	report["title"] = "%s, Year %d" % [MONTHS[month], year]
 	report["balance"] = money
@@ -651,11 +669,7 @@ func _end_month() -> void:
 	report["total_income"] = income
 	report["total_expenses"] = expenses
 	report["profit"] = income - expenses
-	# Operating profit (for goals): leaves out building, expansion and loan repayments.
-	var op := income - int(report["income"].get("refunds", 0))
-	for k in report["expenses"]:
-		if not ["construction", "expansion", "loan_repayments"].has(k):
-			op -= int(report["expenses"][k])
+	var op := _operating_profit(report)
 	report["operating_profit"] = op
 	totals["profit"] = int(totals["profit"]) + op
 	last_report = report
@@ -676,6 +690,28 @@ func _end_month() -> void:
 			notify.emit("Marketing stopped: not enough money")
 	month_ended.emit(report)
 	autosave_wanted.emit()
+
+
+## Operating profit (taxed, and used for goals): income less running costs. Leaves out
+## borrowing, refunds, building, expansion and loan repayments.
+static func _operating_profit(s: Dictionary) -> int:
+	var op := 0
+	for k in s["income"]:
+		if k != "loans" and k != "refunds":
+			op += int(s["income"][k])
+	for k in s["expenses"]:
+		if not ["construction", "expansion", "loan_repayments"].has(k):
+			op -= int(s["expenses"][k])
+	return op
+
+
+## Staff get a little more every month they stay (experience), up to a cap.
+func _pay_rises() -> void:
+	for s in staff:
+		var base: int = int(Data.STAFF[s["role"]]["wage"])
+		s["months"] = int(s.get("months", 0)) + 1
+		s["wage"] = mini(int(round(base * (1.0 + Data.STAFF_RAISE * int(s["months"])))), int(round(base * Data.STAFF_RAISE_CAP)))
+	staff_changed.emit()
 
 
 ## Bills that must be paid even if it takes you into debt.

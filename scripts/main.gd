@@ -404,10 +404,14 @@ func rebake() -> void:
 
 func _count_showcases() -> void:
 	var n := 0
+	var upkeep := 0
 	for o in objects():
-		if o is Tank and o.showcase:
-			n += 1
+		if o is Tank:
+			upkeep += int(o.def.get("upkeep", 0))
+			if o.showcase:
+				n += 1
 	Game.showcase_count = n
+	Game.tank_upkeep = upkeep
 
 
 ## Can item `id` go at `r` (floor rectangle)? {"ok": bool, "why": String}
@@ -829,13 +833,34 @@ func _smart_player() -> void:
 	for id in Data.PRODUCTS:
 		if int(Game.stockroom.get(id, 0)) + Game.units_ordered(id) < 12 and Game.money > 800:
 			Game.order_supplies(id)
+	# Shows: always enter the best fish that fits, from storage or a display tank.
 	if Game.show_entry.is_empty():
 		var best: Dictionary = {}
+		var from: Node = null
 		for f in Game.fish_storage:
 			if Game.can_enter(f) and (best.is_empty() or Game.show_score(f) > Game.show_score(best)):
 				best = f
-		if not best.is_empty() and Game.fish_storage.size() > 4:
-			Game.enter_show(Game.take_stored_fish(int(best["id"])))
+				from = null
+		for o in objects().filter(func(x): return x is Tank and x.room() == "show"):
+			for f in o.fish:
+				if Game.can_enter(f) and (best.is_empty() or Game.show_score(f) > Game.show_score(best)):
+					best = f
+					from = o
+		if not best.is_empty():
+			Game.enter_show(Game.take_stored_fish(int(best["id"])) if from == null else from.remove_fish(int(best["id"])))
+	# Hall of Fame once it's affordable, with a trophy cabinet and a bowl shelf.
+	if not Game.owned_plots.has("hall") and Game.money > 15000:
+		Game.buy_plot("hall")
+		_build_free("trophy_case", "hall")
+		_build_free("bowl_shelf", "hall")
+	# Retire winners before old age takes them.
+	if free_bowls() > 0:
+		var pool: Array = Game.fish_storage.duplicate()
+		for o in objects().filter(func(x): return x is Tank and not x.in_hall()):
+			pool.append_array(o.fish)
+		for f in pool:
+			if Game.can_retire(f) and Data.FishData.days_left(f) <= 12 and free_bowls() > 0:
+				retire_fish(int(f["id"]))
 	# Adults from storage into the showroom.
 	var shows := objects().filter(func(o): return o is Tank and o.room() == "show")
 	for o in shows:
@@ -852,7 +877,7 @@ func _smart_player() -> void:
 		var t := _build_free("tank_medium", "show")
 		if t != null:
 			_build_free("plant", "show", t.position)
-	print("DAY ", d, " cust_in_shop=", customers_root.get_child_count(), " hall=", hall_prestige(), " died=", Game.stats.get("fish_died", 0), " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
+	print("DAY ", d, " cust_in_shop=", customers_root.get_child_count(), " hall=", hall_prestige(), " awards=", Game.awards.size(), " wins=", Game.totals["shows_won"], " grand=", Game.totals["grand_won"], " unlocked=", Game.unlocked.size(), " retired=", objects().filter(func(o): return o is BowlShelf).reduce(func(a, o): return a + o.retired.size(), 0), " died=", Game.stats.get("fish_died", 0), " money=", Game.money, " storage=", Game.fish_storage.size(), " waiting_adults=", adults_waiting,
 		" show_tanks=", shows.size(), " show_fish=", shows.reduce(func(a, o): return a + o.fish.size(), 0),
 		" appeal=", int(showroom_appeal()), " rate=", snappedf(customer_rate(), 0.01), " rep=", int(Game.reputation),
 		" dirt=", objects().filter(func(o): return o is Tank).map(func(o): return int(o.dirt)),

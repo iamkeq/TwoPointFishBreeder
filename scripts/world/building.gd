@@ -339,7 +339,7 @@ static func _award_blocked(blocks: Array, p: Vector3, along: Vector3, inward: Ve
 ## Each plot you could still buy: a grid of its bays on the grass and a FOR SALE sign.
 func _plots() -> void:
 	for id in Data.PLOTS:
-		if Game.owned_plots.has(id):
+		if not Game.can_buy_plot(id):
 			continue
 		var r := L.plot_rect(id, Game.owned_plots)
 		var plane := MeshInstance3D.new()
@@ -470,10 +470,13 @@ func _alleys(lot: Rect2) -> void:
 	Synty.put(o, c + "SM_Prop_Pallet_01", Vector3(rx, 0, 1.0), 20.0)
 	Synty.put(o, c + "SM_Prop_Aircon_01", Vector3(rx, 0, -3.0), -90.0)
 	Synty.put(o, c + "SM_Prop_Trashbin_01", Vector3(rx, 0, 9.0))
-	for p in [Vector3(-27, 0, 6), Vector3(-31, 0, 13), Vector3(-25, 0, 18), Vector3(27, 0, 6), Vector3(31, 0, 12), Vector3(25, 0, 17)]:
-		Synty.put(o, "City/Environments/SM_Env_Tree_0%d" % (1 + int(absf(p.x + p.z)) % 3), p)
-	for p in [Vector3(-24, 0, 3), Vector3(-29, 0, 9), Vector3(24, 0, 3), Vector3(29, 0, 9), Vector3(-23, 0, 14), Vector3(23, 0, 14)]:
-		Synty.put(o, "City/Environments/SM_Env_Flower_01", p, absf(p.x) * 20.0)
+	# Trees and flowers along the sides, just past the alleys.
+	for t in [[4.0, 6.0], [8.0, 13.0], [3.5, 18.0]]:
+		for side in [Vector3(lot.position.x - t[0], 0, t[1]), Vector3(lot.end.x + t[0], 0, t[1] - 0.5)]:
+			Synty.put(o, "City/Environments/SM_Env_Tree_0%d" % (1 + int(absf(side.x + side.z)) % 3), side)
+	for f in [[3.0, 3.0], [6.0, 9.0], [2.5, 14.0]]:
+		for side in [Vector3(lot.position.x - f[0], 0, f[1]), Vector3(lot.end.x + f[0], 0, f[1])]:
+			Synty.put(o, "City/Environments/SM_Env_Flower_01", side, absf(side.x) * 20.0)
 
 
 ## A small park behind the lot: a path, trees, benches, flowers and planters.
