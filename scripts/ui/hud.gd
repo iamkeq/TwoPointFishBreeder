@@ -1192,58 +1192,36 @@ func show_award(a: Dictionary) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_modal.add_child(box)
-	var kinds := {"plaque": "Grand Show Champion's plaque", "certificate": "First place certificate", "rosette": "Show rosette"}
-	_heading(box, kinds[WallAward.kind(a)], 22)
-	var view := SubViewportContainer.new()
-	view.stretch = true
-	view.custom_minimum_size = Vector2(500, 380)
-	box.add_child(view)
-	var vp := SubViewport.new()
-	vp.own_world_3d = true
-	vp.transparent_bg = false
-	vp.msaa_3d = Viewport.MSAA_4X
-	view.add_child(vp)
-	var env := WorldEnvironment.new()
-	env.environment = Environment.new()
-	env.environment.background_mode = Environment.BG_COLOR
-	env.environment.background_color = Color("#3a2a2e") if WallAward.kind(a) != "rosette" else Color("#2c3e48")
-	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.environment.ambient_light_color = Color(1, 1, 1)
-	env.environment.ambient_light_energy = 0.55
-	vp.add_child(env)
-	var spin := Node3D.new()
-	vp.add_child(spin)
-	spin.add_child(WallAward.make(a))
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-30, 20, 0)
-	light.light_energy = 1.1
-	vp.add_child(light)
-	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0, {"plaque": 0.68, "certificate": 0.5, "rosette": 0.6}[WallAward.kind(a)])
-	cam.fov = 45
-	vp.add_child(cam)
-	# A gentle sway so the gold catches the light, without turning the writing away.
-	var tw := spin.create_tween().set_loops()
-	tw.tween_property(spin, "rotation:y", 0.25, 2.5).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(spin, "rotation:y", -0.25, 2.5).set_trans(Tween.TRANS_SINE)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 24)
-	box.add_child(grid)
-	var rows := [
-		["Show", a.get("title", "Fish Show")],
-		["Placing", WallAward.PLACE_WORDS[clampi(int(a.get("place", 1)), 1, 3) - 1] + ("  (Grand Show)" if a.get("grand", false) else "")],
-		["Fish", a.get("fish", "") if a.get("fish", "") != "" else "Not recorded"],
-		["Date", WallAward.date(a) if WallAward.date(a) != "" else "Not recorded"],
-	]
-	for row in rows:
-		var k := Label.new()
-		k.text = row[0]
-		k.add_theme_color_override("font_color", Color("#a9c6cf"))
-		grid.add_child(k)
-		var v := Label.new()
-		v.text = row[1]
-		grid.add_child(v)
+	_heading(box, WallAward.kind_name(a), 22)
+	var stage := PanelContainer.new()
+	stage.theme_type_variation = "CardPanel"
+	box.add_child(stage)
+	var pics := HBoxContainer.new()
+	pics.alignment = BoxContainer.ALIGNMENT_CENTER
+	pics.add_theme_constant_override("separation", 40)
+	stage.add_child(pics)
+	for pair in [[WallAward.wall_sprite(a), "On the wall"], [WallAward.cabinet_sprite(a), "In the trophy cabinet"]]:
+		var col := VBoxContainer.new()
+		pics.add_child(col)
+		var pic := TextureRect.new()
+		pic.texture = load(WallAward.SPRITE % pair[0])
+		pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.custom_minimum_size = Vector2(230, 300) if pair[1] == "On the wall" else Vector2(150, 300)
+		col.add_child(pic)
+		var cap := Label.new()
+		cap.text = pair[1]
+		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cap.add_theme_color_override("font_color", Color("#a9c6cf"))
+		col.add_child(cap)
+	# The engraving on its nameplate.
+	var plate := Label.new()
+	plate.text = "%s\n%s%s" % [WallAward.title(a), a.get("fish", ""), ("  ·  " + WallAward.date(a)) if WallAward.date(a) != "" else ""]
+	plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plate.add_theme_color_override("font_color", Color("#ffd45c"))
+	plate.add_theme_font_size_override("font_size", 18)
+	box.add_child(plate)
 	var close := _button(box, "Close", func(): _modal.visible = false)
 	close.custom_minimum_size.y = 36
 	_pop(_modal)

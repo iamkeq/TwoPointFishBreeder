@@ -1,6 +1,8 @@
 extends "res://scripts/world/placeable.gd"
+
+const WallAward := preload("res://scripts/world/wall_award.gd")
 ## A glass-fronted cabinet for the Hall of Fame that shows your fish show trophies: gold,
-## silver and bronze cups for 1st, 2nd and 3rd, taller ones from Grand Shows. Three shelves of
+## silver and bronze for 1st, 2nd and 3rd, swirl statues from Grand Shows (see wall_award.gd). Three shelves of
 ## three; the world hands each cabinet its share of the trophies, best first (see main.gd).
 
 const PER_CASE := 9
@@ -66,42 +68,9 @@ func show_awards(list: Array) -> void:
 	for i in awards.size():
 		var a: Dictionary = awards[i]
 		var x := -w * 0.5 + w * (float(i % 3) + 0.5) / 3.0
-		_cup(Vector3(x, SHELF_Y[i / 3], 0.02), int(a.get("place", 1)), bool(a.get("grand", false)))
-
-
-## A cup: a dark base, a stem and a flared bowl in gold, silver or bronze.
-func _cup(at: Vector3, place: int, grand: bool) -> void:
-	var s := 1.75 if grand else 1.4
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = CUP_COLORS[clampi(place, 1, 3) - 1]
-	metal.metallic = 0.85
-	metal.roughness = 0.25
-	var dark := StandardMaterial3D.new()
-	dark.albedo_color = Color("#1e1a18")
-	var cup := Node3D.new()
-	cup.position = at
-	cup.scale = Vector3.ONE * s
-	_cups.add_child(cup)
-	var parts := [
-		[BoxMesh, Vector3(0.13, 0.05, 0.13), 0.025, dark],
-		[CylinderMesh, Vector3(0.022, 0.1, 0.03), 0.1, metal],
-		[CylinderMesh, Vector3(0.085, 0.14, 0.03), 0.22, metal],
-	]
-	for p in parts:
-		var m := MeshInstance3D.new()
-		if p[0] == BoxMesh:
-			var b := BoxMesh.new()
-			b.size = p[1]
-			m.mesh = b
-		else:
-			var c := CylinderMesh.new()
-			c.top_radius = p[1].x
-			c.bottom_radius = p[1].z
-			c.height = p[1].y
-			m.mesh = c
-		m.position.y = p[2]
-		m.material_override = p[3]
-		cup.add_child(m)
+		var t := WallAward.make_trophy(a, 0.52 if a.get("grand", false) else 0.48)
+		t.position = Vector3(x, SHELF_Y[i / 3], 0.0)
+		_cups.add_child(t)
 
 
 static func award_prestige(a: Dictionary) -> int:

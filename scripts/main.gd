@@ -584,7 +584,8 @@ func _shoot(path: String) -> void:
 				f["ribbon"] = i % 3
 				t.add_fish(f)
 			for i in 7:
-				Game.awards.append({"title": "Grand Show" if i == 0 else "Fish Show %d" % i, "place": 1 + i % 3, "grand": i == 0, "day": i, "fish": "Test fish"})
+				Game.awards.append({"title": "Grand Show" if i == 0 else "Fish Show %d" % i, "place": 1 + i % 3, "grand": i == 0, "day": 14 * (i + 1),
+					"fish": "Test fish", "species": ["goldfish", "guppy", "betta"][i % 3]})
 			place("trophy_case", Vector3(h.get_center().x - 1.5, 0, h.end.y - 0.5), 2)
 			place("trophy_case", Vector3(h.get_center().x + 1.5, 0, h.end.y - 0.5), 2)
 			place("plant", Vector3(h.end.x - 0.6, 0, h.position.y + 0.6), 0)
@@ -598,7 +599,8 @@ func _shoot(path: String) -> void:
 			Game.notify.connect(func(t): print("NOTE ", t))
 		elif arg.begins_with("--test-awards="):
 			for i in int(arg.substr(14)):
-				Game.awards.append({"title": "Fish Show %d" % i, "place": 1 + i % 3, "grand": i % 5 == 0, "day": i, "fish": "Test fish"})
+				Game.awards.append({"title": "Fish Show %d" % i, "place": 1 + i % 3, "grand": i % 5 == 0, "day": 14 * (i + 1),
+					"fish": "Test fish", "species": ["goldfish", "guppy", "betta", "neon"][i % 4]})
 			Game.awards_changed.emit()
 			print("AWARDS showroom=", building.showroom_award_points.size(), " appeal_near_tank=", int(decor_appeal_near(Vector3(-4, 0, -1))))
 		elif arg == "--award-click":
@@ -615,9 +617,9 @@ func _shoot(path: String) -> void:
 					break
 		elif arg.begins_with("--award-pop="):
 			var which := int(arg.substr(12))
-			var a: Dictionary = [{"title": "Grand Show 4", "place": 1, "grand": true, "day": 112, "fish": "Orange Guppy"},
-				{"title": "Fish Show 7: Guppy class", "place": 1, "grand": false, "day": 98, "fish": "Sunset Guppy"},
-				{"title": "Fish Show 9", "place": 2, "grand": false, "day": 126, "fish": "Ryukin Goldfish"}][which]
+			var a: Dictionary = [{"title": "Grand Show 4", "place": 1, "grand": true, "day": 112, "fish": "Orange Guppy", "species": "guppy"},
+				{"title": "Fish Show 7: Guppy class", "place": 1, "grand": false, "day": 98, "fish": "Sunset Guppy", "species": "guppy"},
+				{"title": "Fish Show 9", "place": 2, "grand": false, "day": 126, "fish": "Ryukin Goldfish", "species": "goldfish"}][which]
 			hud.show_award.call_deferred(a)
 		elif arg == "--steps-min":
 			Game.steps_minimized = true

@@ -794,7 +794,7 @@ func _run_show() -> void:
 		prizes.append("$%d" % cash)
 		change_reputation([6.0, 3.0, 1.5][place - 1] * (2.0 if grand else 1.0))
 		mine["ribbon"] = int(mine.get("ribbon", 0)) + 1
-		awards.append({"title": show_title(n), "place": place, "grand": grand, "day": abs_day,
+		awards.append({"title": show_title(n), "place": place, "grand": grand, "day": abs_day, "species": mine["species"],
 			"fish": FishData.full_name(mine, Data.SPECIES[mine["species"]]["name"])})
 		prizes.append("a %s trophy" % ["gold", "silver", "bronze"][place - 1])
 	if place == 1:
