@@ -21,6 +21,8 @@ const SaveGame := preload("res://scripts/save_game.gd")
 ## Seconds (game time at 1x) between customers with no reputation or marketing.
 const BASE_SPAWN := 4.5
 const MAX_CUSTOMERS := 36
+## Appeal a show award on the showroom wall adds to each tank near it.
+const AWARD_APPEAL := 3.0
 
 var building: Node3D
 var nav: NavigationRegion3D
@@ -107,6 +109,7 @@ func _ready() -> void:
 	_sync_staff()
 	Game.month_ended.connect(func(_r): _count_showcases())
 	Game.awards_changed.connect(_refresh_trophies)
+	Game.awards_changed.connect(func(): building.refresh_awards())
 	Game.fish_delivered.connect(_on_fish_delivered)
 	rebake()
 
@@ -378,7 +381,13 @@ func decor_appeal_near(p: Vector3) -> float:
 		var d := Vector2(o.position.x - p.x, o.position.z - p.z).length()
 		if d < Data.APPEAL_RADIUS:
 			a += float(o.def.get("appeal", 0.0)) * (1.0 - d / Data.APPEAL_RADIUS * 0.5)
-	return a
+	# Show awards on the showroom wall: +3 each nearby, at most +20.
+	var awards := 0.0
+	for w in building.showroom_award_points:
+		var d := Vector2(w.x - p.x, w.z - p.z).length()
+		if d < Data.APPEAL_RADIUS:
+			awards += AWARD_APPEAL * (1.0 - d / Data.APPEAL_RADIUS * 0.5)
+	return a + minf(awards, 20.0)
 
 
 # --- The till -------------------------------------------------------------------------
@@ -587,6 +596,11 @@ func _shoot(path: String) -> void:
 			for i in int(arg.substr(13)):
 				Game.order_fish("guppy", "red", "m" if i % 2 == 0 else "f", 2)
 			Game.notify.connect(func(t): print("NOTE ", t))
+		elif arg.begins_with("--test-awards="):
+			for i in int(arg.substr(14)):
+				Game.awards.append({"title": "Fish Show %d" % i, "place": 1 + i % 3, "grand": i % 5 == 0, "day": i, "fish": "Test fish"})
+			Game.awards_changed.emit()
+			print("AWARDS showroom=", building.showroom_award_points.size(), " appeal_near_tank=", int(decor_appeal_near(Vector3(-4, 0, -1))))
 		elif arg == "--steps-min":
 			Game.steps_minimized = true
 		elif arg == "--edit":

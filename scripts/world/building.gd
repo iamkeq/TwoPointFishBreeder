@@ -8,6 +8,7 @@ extends Node3D
 
 const Synty := preload("res://scripts/lib/synty.gd")
 const BuildUtil := preload("res://scripts/lib/build_util.gd")
+const WallAward := preload("res://scripts/world/wall_award.gd")
 const L := preload("res://scripts/world/layout.gd")
 const Data := preload("res://scripts/data.gd")
 
@@ -30,6 +31,16 @@ var _structure: Node3D
 var _plot_root: Node3D
 ## Wall group of the Hall of Fame's front wall (for its sign), -1 without a hall.
 var _hall_front := -1
+## Wall groups the show awards hang on: the divider (showroom side) and the hall's back
+## and east walls (-1 without a hall).
+var _divider_group := -1
+var _east_show_group := -1
+var _west_group := -1
+var _hall_back := -1
+var _hall_east := -1
+var _award_nodes: Array = []
+## Where the awards in the showroom hang (they add appeal to tanks nearby).
+var showroom_award_points: Array[Vector3] = []
 
 
 ## Builds the surroundings once and the building itself.
@@ -56,10 +67,14 @@ func rebuild() -> void:
 	_walls.clear()
 	_cut_state.clear()
 	_hall_front = -1
+	_hall_back = -1
+	_hall_east = -1
+	_award_nodes.clear()
 	_floors()
 	_walls_all()
 	_signs()
 	_plots()
+	refresh_awards()
 
 
 # --- Floors ---------------------------------------------------------------------------
@@ -112,19 +127,24 @@ func _walls_all() -> void:
 	if L.has_hall:
 		for i in mini(3, ns):
 			east_show[i] = "door" if i == L.HALL_DOOR_BAY else "wall"
+	_east_show_group = _walls.size()
 	_wall_run(Vector3(L.x1, 0, L.Z0), -90.0, east_show, SHOW_PAINT)
 	_wall_run(Vector3(L.x1, 0, L.DIVIDER_Z), -90.0, side.slice(ns), BACK_PAINT, _walls.size() - 1)
 	var reversed_side := side.duplicate()
 	reversed_side.reverse()
 	_wall_run(Vector3(L.x0, 0, L.z1), 90.0, reversed_side.slice(0, nb), BACK_PAINT)
-	_wall_run(Vector3(L.x0, 0, L.DIVIDER_Z), 90.0, reversed_side.slice(nb), SHOW_PAINT, _walls.size() - 1)
+	_west_group = _walls.size() - 1
+	_wall_run(Vector3(L.x0, 0, L.DIVIDER_Z), 90.0, reversed_side.slice(nb), SHOW_PAINT, _west_group)
 	# The divider between the rooms.
+	_divider_group = _walls.size()
 	_wall_run(Vector3(L.x0, 0, L.DIVIDER_Z), 0.0, divider, BACK_PAINT)
 	if L.has_hall:
 		var h := L.hall()
 		_hall_front = _walls.size()
 		_wall_run(Vector3(h.position.x, 0, L.Z0), 0.0, ["wall", "window", "wall"], HALL_PAINT)
+		_hall_east = _walls.size()
 		_wall_run(Vector3(h.end.x, 0, L.Z0), -90.0, ["wall", "wall", "wall"], HALL_PAINT)
+		_hall_back = _walls.size()
 		_wall_run(Vector3(h.end.x, 0, h.end.y), 180.0, ["wall", "wall", "wall"], HALL_PAINT)
 
 
@@ -212,6 +232,72 @@ func _signs() -> void:
 	_walls[0]["full"].append(BuildUtil.sign(_structure, "Fig Tree Fish Store", Vector3(front_x, 3.25, L.Z0 - 0.2), 180.0, 0.45))
 	if _hall_front >= 0:
 		_walls[_hall_front]["full"].append(BuildUtil.sign(_structure, "Hall of Fame", Vector3(L.hall().get_center().x, 3.25, L.Z0 - 0.2), 180.0, 0.4))
+
+
+# --- Show awards on the walls ----------------------------------------------------------
+
+## Hang every show award (top 3) on the walls, best first: round the Hall of Fame if you
+## have one, then on the showroom's side walls (between the windows, where customers see
+## them), then along the divider. Each hides with its wall when that is cut away.
+func refresh_awards() -> void:
+	for n in _award_nodes:
+		if is_instance_valid(n):
+			for g in _walls:
+				g["full"].erase(n)
+			n.free()
+	_award_nodes.clear()
+	showroom_award_points.clear()
+	var list: Array = Game.awards.duplicate()
+	list.sort_custom(func(a, b): return _award_rank(a) > _award_rank(b))
+	var slots := _award_slots()
+	for i in mini(list.size(), slots.size()):
+		var s: Array = slots[i]
+		var node := WallAward.make(list[i])
+		node.position = s[0]
+		node.rotation.y = deg_to_rad(s[1])
+		_structure.add_child(node)
+		_award_nodes.append(node)
+		var g: Dictionary = _walls[s[2]]
+		g["full"].append(node)
+		node.visible = not _cut_state.get(s[2], false)
+		if s[3] == "show":
+			showroom_award_points.append(s[0])
+
+
+static func _award_rank(a: Dictionary) -> int:
+	return (4 - int(a.get("place", 1))) * 10 + (5 if a.get("grand", false) else 0)
+
+
+## [position, yaw, wall group, room] for each spot an award can hang, in order.
+func _award_slots() -> Array:
+	var out: Array = []
+	const INSET := 0.17  # half the wall's thickness, plus a little
+	var show: Array = []
+	# Side walls: the plain bays (windows are on the odd ones, the hall door on bay 1).
+	for i in L.show_bays():
+		if i % 2 == 1:
+			continue
+		for k in 3:
+			var z := L.Z0 + i * L.BAY + 0.55 + k * 0.7
+			show.append([Vector3(L.x1 - INSET, 2.35, z), -90.0, _east_show_group, "show"])
+			show.append([Vector3(L.x0 + INSET, 2.35, z), 90.0, _west_group, "show"])
+	if _divider_group >= 0:
+		var x := L.x0 + 0.6
+		while x < L.x1 - 0.5:
+			if x < L.DIVIDER_DOOR_X - 0.4 or x > L.DIVIDER_DOOR_X + L.BAY + 0.4:
+				show.append([Vector3(x, 2.35, L.DIVIDER_Z - INSET), 180.0, _divider_group, "show"])
+			x += 0.75
+	if _hall_back >= 0:
+		var h := L.hall()
+		var x := h.position.x + 0.6
+		while x < h.end.x - 0.5:
+			out.append([Vector3(x, 2.4, h.end.y - INSET), 180.0, _hall_back, "hall"])
+			x += 0.75
+		var z := L.Z0 + 0.6
+		while z < h.end.y - 0.5:
+			out.append([Vector3(h.end.x - INSET, 2.4, z), -90.0, _hall_east, "hall"])
+			z += 0.75
+	return out + show
 
 
 # --- For-sale plots ---------------------------------------------------------------------
