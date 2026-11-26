@@ -268,36 +268,70 @@ static func _award_rank(a: Dictionary) -> int:
 	return (4 - int(a.get("place", 1))) * 10 + (5 if a.get("grand", false) else 0)
 
 
-## [position, yaw, wall group, room] for each spot an award can hang, in order.
+## Heights of the award grid's rows (top first) and the spacing along a wall.
+const AWARD_ROWS := [2.45, 1.9, 1.35, 0.8]
+const AWARD_COL := 0.6
+## Returns [rect, height] for everything built (set by the world), so awards skip any spot a
+## cabinet, tank or shelf stands in front of.
+var award_blockers: Callable
+
+
+## [position, yaw, wall group, room] for each free spot in the award grid, in hanging order:
+## the Hall of Fame's walls, then the showroom's side walls (between the windows), then the
+## divider. Each wall fills its top row first.
 func _award_slots() -> Array:
+	var blocks: Array = award_blockers.call() if award_blockers.is_valid() else []
 	var out: Array = []
-	const INSET := 0.17  # half the wall's thickness, plus a little
-	var show: Array = []
-	# Side walls: the plain bays (windows are on the odd ones, the hall door on bay 1).
-	for i in L.show_bays():
-		if i % 2 == 1:
-			continue
-		for k in 3:
-			var z := L.Z0 + i * L.BAY + 0.55 + k * 0.7
-			show.append([Vector3(L.x1 - INSET, 2.35, z), -90.0, _east_show_group, "show"])
-			show.append([Vector3(L.x0 + INSET, 2.35, z), 90.0, _west_group, "show"])
-	if _divider_group >= 0:
-		var x := L.x0 + 0.6
-		while x < L.x1 - 0.5:
-			if x < L.DIVIDER_DOOR_X - 0.4 or x > L.DIVIDER_DOOR_X + L.BAY + 0.4:
-				show.append([Vector3(x, 2.35, L.DIVIDER_Z - INSET), 180.0, _divider_group, "show"])
-			x += 0.75
 	if _hall_back >= 0:
 		var h := L.hall()
-		var x := h.position.x + 0.6
-		while x < h.end.x - 0.5:
-			out.append([Vector3(x, 2.4, h.end.y - INSET), 180.0, _hall_back, "hall"])
-			x += 0.75
-		var z := L.Z0 + 0.6
-		while z < h.end.y - 0.5:
-			out.append([Vector3(h.end.x - INSET, 2.4, z), -90.0, _hall_east, "hall"])
-			z += 0.75
-	return out + show
+		_wall_grid(out, blocks, Vector3(h.position.x, 0, h.end.y), Vector3.RIGHT, h.size.x, Vector3.FORWARD, 180.0, _hall_back, "hall", [])
+		_wall_grid(out, blocks, Vector3(h.end.x, 0, L.Z0), Vector3.BACK, h.size.y, Vector3.LEFT, -90.0, _hall_east, "hall", [])
+		# The hall's side of the wall it shares with the showroom (round its door).
+		var door := L.HALL_DOOR_BAY * L.BAY
+		_wall_grid(out, blocks, Vector3(h.position.x, 0, L.Z0), Vector3.BACK, h.size.y, Vector3.RIGHT, 90.0, _east_show_group, "hall", [[door - 0.3, door + L.BAY + 0.3]])
+	# Showroom side walls: windows are on the odd bays (the hall door too).
+	var windows: Array = []
+	for i in L.show_bays():
+		if i % 2 == 1:
+			windows.append([i * L.BAY - 0.15, (i + 1) * L.BAY + 0.15])
+	var side := L.show_bays() * L.BAY
+	_wall_grid(out, blocks, Vector3(L.x1, 0, L.Z0), Vector3.BACK, side, Vector3.LEFT, -90.0, _east_show_group, "show", windows)
+	_wall_grid(out, blocks, Vector3(L.x0, 0, L.Z0), Vector3.BACK, side, Vector3.RIGHT, 90.0, _west_group, "show", windows)
+	if _divider_group >= 0:
+		var d0 := L.DIVIDER_DOOR_X - L.x0
+		_wall_grid(out, blocks, Vector3(L.x0, 0, L.DIVIDER_Z), Vector3.RIGHT, L.x1 - L.x0, Vector3.FORWARD, 180.0, _divider_group, "show", [[d0 - 0.3, d0 + L.BAY + 0.3]])
+	return out
+
+
+## Grid spots along one wall: from `start` (a corner, on the wall line) along `along` for
+## `length` metres, facing into the room along `inward`. `skip`: [from, to] stretches along the
+## wall with no awards (doors, windows). Spots with furniture in front are left out.
+func _wall_grid(out: Array, blocks: Array, start: Vector3, along: Vector3, length: float, inward: Vector3,
+		yaw: float, group: int, room: String, skip: Array) -> void:
+	const INSET := 0.17  # half the wall's thickness, plus a little
+	var cols := int(floor((length - 0.5) / AWARD_COL)) + 1
+	var margin := (length - (cols - 1) * AWARD_COL) * 0.5
+	for y in AWARD_ROWS:
+		for c in cols:
+			var d := margin + c * AWARD_COL
+			if skip.any(func(r): return d > r[0] and d < r[1]):
+				continue
+			var p := start + along * d + inward * INSET
+			p.y = y
+			if _award_blocked(blocks, p, along, inward):
+				continue
+			out.append([p, yaw, group, room])
+
+
+## Something built stands in front of this spot and is taller than its bottom edge.
+static func _award_blocked(blocks: Array, p: Vector3, along: Vector3, inward: Vector3) -> bool:
+	var a := p - along * 0.25
+	var b := p + along * 0.25 + inward * 0.75
+	var zone := Rect2(Vector2(minf(a.x, b.x), minf(a.z, b.z)), Vector2(absf(a.x - b.x), absf(a.z - b.z)))
+	for blk in blocks:
+		if (blk[0] as Rect2).intersects(zone) and float(blk[1]) > p.y - 0.3:
+			return true
+	return false
 
 
 # --- For-sale plots ---------------------------------------------------------------------

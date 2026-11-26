@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.8.0** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.8.1** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -64,8 +64,9 @@ Version **0.8.0** (Godot 4.7.2, Forward+). This is the base system.
   the placing (gold, silver, bronze) and the fish matches the winner: goldfish plaques, guppy
   rosettes, betta oval plaques, medals for other species, and a shield for any Grand Show
   placing; in the cabinet, fish trophies and statues, with swirl statues from Grand Shows.
-  Wall awards go round the Hall of Fame first, then the showroom's side walls between the
-  windows, then the divider; each one in the showroom adds 3 appeal to tanks within 4 m (up to
+  Wall awards hang in a grid (four rows, from near the floor to near the ceiling) round the Hall
+  of Fame first, then the showroom's side walls between the windows, then the divider; spots
+  behind a cabinet, tank or shelf are skipped, and the awards move round when you rearrange; each one in the showroom adds 3 appeal to tanks within 4 m (up to
   +20 a tank). **Click any award** for a close-up of it and its cabinet trophy, with the show,
   placing, fish and date.
 - **Breeding tanks** (back room only, 6 fish): only adults of one species breed; different

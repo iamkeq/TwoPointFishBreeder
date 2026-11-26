@@ -69,6 +69,11 @@ func _ready() -> void:
 	building = Building.new()
 	building.name = "Building"
 	nav.add_child(building)
+	building.award_blockers = func():
+		if objects_root == null:
+			return []
+		return objects().filter(func(o): return not o.def.get("walkable", false)).map(
+			func(o): return [o.rect(), float(o.def.get("height", 1.0))])
 	building.build()
 	_fit_nav_area()
 	Game.plots_changed.connect(_on_plots_changed)
@@ -384,6 +389,7 @@ func _count_kind(kind: String) -> int:
 func objects_changed() -> void:
 	_count_showcases()
 	_refresh_trophies.call_deferred()
+	building.refresh_awards.call_deferred()  # awards make way for furniture against the walls
 	if not _rebake_pending:
 		_rebake_pending = true
 		rebake.call_deferred()
@@ -650,6 +656,7 @@ func _shoot(path: String) -> void:
 			place("trophy_case", Vector3(h.get_center().x + 1.5, 0, h.end.y - 0.5), 2)
 			place("plant", Vector3(h.end.x - 0.6, 0, h.position.y + 0.6), 0)
 			place("bowl_shelf", Vector3(h.end.x - 0.4, 0, h.get_center().y), 1)
+			place("tank_medium", Vector3(h.position.x + 0.6, 0, h.end.y - 1.4), 3)
 			for i in 3:
 				var w := Game.new_fish(["guppy", "goldfish", "goldfish"][i], 5, ["sunset", "oranda", "ranchu"][i])
 				w["ribbon"] = 2
