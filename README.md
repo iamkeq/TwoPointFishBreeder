@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.7.4** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.7.5** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -52,12 +52,15 @@ Version **0.7.4** (Godot 4.7.2, Forward+). This is the base system.
   bigger from Grand Shows, best first, 9 per cabinet). The hall's **prestige** (each fish's
   stars, +4 per show ribbon, plus 8/5/3 per trophy, doubled for Grand Shows) brings up to +50%
   more customers, and some customers stop by to admire it.
-- **Wall awards**: every top-3 show finish also hangs on the walls by itself, best first: a
-  wooden plaque for a Grand Show win, a framed certificate for a 1st, a red or yellow rosette for
-  2nd or 3rd. They go round the Hall of Fame first (if you have it), then on the showroom's side
-  walls between the windows, then along the divider. Each award in the showroom adds 3 appeal to
-  tanks within 4 m (up to +20 a tank). **Click any award** for a close-up you can read: the
-  show, the placing, the fish and the date.
+- **Show awards** (pixel art in `assets/awards/`, cut from the shared award sheet): every top-3
+  finish hangs on the walls by itself and adds a trophy to the Trophy Cabinets. The metal shows
+  the placing (gold, silver, bronze) and the fish matches the winner: goldfish plaques, guppy
+  rosettes, betta oval plaques, medals for other species, and a shield for any Grand Show
+  placing; in the cabinet, fish trophies and statues, with swirl statues from Grand Shows.
+  Wall awards go round the Hall of Fame first, then the showroom's side walls between the
+  windows, then the divider; each one in the showroom adds 3 appeal to tanks within 4 m (up to
+  +20 a tank). **Click any award** for a close-up of it and its cabinet trophy, with the show,
+  placing, fish and date.
 - **Breeding tanks** (back room only, 6 fish): only adults of one species breed; different
   species never cross. Each male fathers broods with up to 3 females, so broods =
   min(females, males x 3); more males than females halves it. A brood is 2-4 fry, every
