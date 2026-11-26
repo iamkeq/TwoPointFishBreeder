@@ -9,6 +9,7 @@ const Shelf := preload("res://scripts/world/shelf.gd")
 const FishData := preload("res://scripts/fish_data.gd")
 const L := preload("res://scripts/world/layout.gd")
 const WallAward := preload("res://scripts/world/wall_award.gd")
+const BowlShelf := preload("res://scripts/world/bowl_shelf.gd")
 const Genetics := preload("res://scripts/genetics.gd")
 const Goals := preload("res://scripts/goals.gd")
 const FishIcon := preload("res://scripts/ui/fish_icon.gd")
@@ -447,6 +448,8 @@ func _item_blurb(def: Dictionary) -> String:
 			return "Customers pay here. %s" % rooms
 		"trophies":
 			return "Shows up to 9 of your fish show trophies; each adds prestige. %s only" % rooms
+		"bowls":
+			return "6 bowls for retired show winners: they never age or need care. %s only" % rooms
 		_:
 			if float(def.get("appeal", 0.0)) > 0.0:
 				return "+%d appeal to tanks nearby. %s" % [int(def["appeal"]), rooms]
@@ -543,7 +546,7 @@ func _order_panel() -> void:
 func _fish_panel() -> void:
 	var tabs := HBoxContainer.new()
 	_side_box.add_child(tabs)
-	for tab in ["Storage", "Breeding book"]:
+	for tab in ["Storage", "Retired", "Breeding book"]:
 		var b := _button(tabs, tab, func():
 			_fish_tab = tab
 			_refresh_side())
@@ -551,6 +554,9 @@ func _fish_panel() -> void:
 		b.set_pressed_no_signal(tab == _fish_tab)
 	if _fish_tab == "Breeding book":
 		_book_panel()
+		return
+	if _fish_tab == "Retired":
+		_retired_panel()
 		return
 	_heading(_side_box, "Fish storage (back room)")
 	if Game.fish_storage.is_empty():
@@ -877,6 +883,23 @@ func _refresh_selection() -> void:
 		_tank_section(obj)
 	elif obj is Shelf:
 		_shelf_section(obj)
+	elif obj is BowlShelf:
+		_bowl_section(obj)
+
+
+func _bowl_section(shelf: Node) -> void:
+	_heading(_sel_box, "Retired fish (%d/%d)" % [shelf.retired.size(), shelf.capacity()], 16)
+	for f in shelf.retired:
+		var r := _card(_sel_box)
+		r.add_child(_fish_pic(f))
+		var l := Label.new()
+		l.text = "%s\nRetired %s" % [Data.fish_label(f), Game.date_of(int(f.get("retired_day", 0)))]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		r.add_child(l)
+		_button(r, "Archive", func():
+			world.archive_fish(int(f["id"]))
+			_refresh_selection())
 
 
 func _tank_section(tank: Node) -> void:
@@ -1034,6 +1057,10 @@ func _find_fish(id: int) -> Array:
 			for f in o.fish:
 				if int(f["id"]) == id:
 					return [f, o]
+		elif o is BowlShelf:
+			for f in o.retired:
+				if int(f["id"]) == id:
+					return [f, o]
 	return []
 
 
@@ -1088,13 +1115,18 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 		kind = "Mutation"
 	var age := int(f.get("age", 0))
 	var sells := "Not until it's grown"
-	var in_hall: bool = home != null and home.in_hall()
-	if in_hall:
+	var retired: bool = home != null and home is BowlShelf
+	var in_hall: bool = home != null and (retired or home.in_hall())
+	if retired:
+		sells = "Retired: never for sale"
+	elif in_hall:
 		sells = "Not for sale (Hall of Fame)"
 	elif adult:
 		sells = "$%d" % (home.price_of(f) if home != null and not home.is_breeding() and not home.is_holding() else Data.fish_price(f))
 	var life := ""
-	if in_hall:
+	if retired:
+		life = ", retired on %s: never grows old" % Game.date_of(int(f.get("retired_day", 0)))
+	elif in_hall:
 		life = ", never grows old (Hall of Fame)"
 	elif adult:
 		var left := FishData.days_left(f)
@@ -1122,6 +1154,21 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 		var val := Label.new()
 		val.text = row[1]
 		grid.add_child(val)
+	if retired:
+		_small(box, "Retired fish stay in their bowl for good. Archive it to free the bowl (it's kept in the Fish panel's Retired list).")
+		var rrow := HBoxContainer.new()
+		rrow.add_theme_constant_override("separation", 10)
+		box.add_child(rrow)
+		_button(rrow, "Archive", func():
+			world.archive_fish(id)
+			_modal.visible = false
+			_refresh_selection()
+			_refresh_side())
+		var rclose := _button(rrow, "Close", func(): _modal.visible = false)
+		rclose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rclose.custom_minimum_size.y = 36
+		_pop(_modal)
+		return
 	# Where it can go: the tank being filled first, then the rest.
 	var tanks: Array = []
 	if for_tank != null and is_instance_valid(for_tank) and for_tank != home:
@@ -1159,10 +1206,82 @@ func _fish_details(id: int, for_tank: Node = null) -> void:
 			Game.enter_show(Game.take_stored_fish(id))
 			_modal.visible = false
 			_refresh_side())
+	if Game.can_retire(f):
+		var rb := _button(row2, "Retire 🏆", func(): _confirm_retire(id))
+		if not Game.owned_plots.has("hall"):
+			rb.disabled = true
+			rb.tooltip_text = "Buy the Hall of Fame (Expand) to retire your winners"
+		elif world.free_bowls() <= 0:
+			rb.disabled = true
+			rb.tooltip_text = "Build a Fish Bowl Shelf in the Hall of Fame (or archive a retired fish)"
+		else:
+			rb.tooltip_text = "Retire this show winner to a bowl in the Hall of Fame, for good"
 	var close := _button(row2, "Close", func(): _modal.visible = false)
 	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	close.custom_minimum_size.y = 36
 	_pop(_modal)
+
+
+## Retiring is for good, so ask first.
+func _confirm_retire(id: int) -> void:
+	var found := _find_fish(id)
+	if found.is_empty():
+		return
+	var f: Dictionary = found[0]
+	_clear(_modal)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_modal.add_child(box)
+	_heading(box, "Retire %s?" % FishData.full_name(f, Data.SPECIES[f["species"]]["name"]), 22)
+	box.add_child(FishIcon.make(f, Vector2(300, 150)))
+	_small(box, "%s  ·  %d show ribbon%s" % [Data.stars_text(int(f["stars"])), int(f.get("ribbon", 0)), "" if int(f.get("ribbon", 0)) == 1 else "s"])
+	_small(box, "It moves to a bowl in the Hall of Fame for good: it never grows old, never needs feeding and its bowl never needs cleaning. It can't breed, be sold or come back out (you can archive it later).")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	_button(row, "Retire it", func():
+		if world.retire_fish(id):
+			toast("Retired to the Hall of Fame")
+		_modal.visible = false
+		_refresh_selection()
+		_refresh_side())
+	var no := _button(row, "Not yet", func(): _fish_details(id))
+	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	no.custom_minimum_size.y = 36
+	_pop(_modal)
+
+
+func _retired_panel() -> void:
+	_heading(_side_box, "Retired to the Hall of Fame")
+	_small(_side_box, "Show winners you retire live in fish bowls in the Hall of Fame for good. Retire one from its close-up; archive one to free its bowl.")
+	var any := false
+	for o in world.objects():
+		if o is BowlShelf:
+			for f in o.retired:
+				any = true
+				var r := _card(_side_box)
+				r.add_child(_fish_pic(f))
+				var l := Label.new()
+				l.text = "%s\nRetired %s" % [Data.fish_label(f), Game.date_of(int(f.get("retired_day", 0)))]
+				l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				r.add_child(l)
+				_button(r, "Archive", func():
+					world.archive_fish(int(f["id"]))
+					_refresh_side())
+	if not any:
+		_small(_side_box, "No retired fish yet." + ("" if world.free_bowls() > 0 else " Build a Fish Bowl Shelf in the Hall of Fame first."))
+	_heading(_side_box, "Archive (%d)" % Game.retired_archive.size(), 16)
+	if Game.retired_archive.is_empty():
+		_small(_side_box, "Archived fish are listed here.")
+	for f in Game.retired_archive:
+		var r := _card(_side_box)
+		r.add_child(FishIcon.make(f))
+		var l := Label.new()
+		l.text = "%s\nRetired %s, archived %s" % [Data.fish_label(f), Game.date_of(int(f.get("retired_day", 0))), Game.date_of(int(f.get("archived_day", 0)))]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		r.add_child(l)
 
 
 func _move_fish(id: int, to: Node) -> void:

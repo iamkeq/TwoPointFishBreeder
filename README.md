@@ -5,7 +5,7 @@ Customers come into the showroom to look at tanks and buy fish or supplies; the 
 is where you breed new fish (rated 1 to 5 stars). Time passes in days and months, and
 every month ends with a report.
 
-Version **0.7.5** (Godot 4.7.2, Forward+). This is the base system.
+Version **0.8.0** (Godot 4.7.2, Forward+). This is the base system.
 
 ## Controls
 
@@ -52,6 +52,13 @@ Version **0.7.5** (Godot 4.7.2, Forward+). This is the base system.
   bigger from Grand Shows, best first, 9 per cabinet). The hall's **prestige** (each fish's
   stars, +4 per show ribbon, plus 8/5/3 per trophy, doubled for Grand Shows) brings up to +50%
   more customers, and some customers stop by to admire it.
+- **Retiring winners**: a fish with a show ribbon (top 3 at any show) can be retired from its
+  close-up (Retire 🏆, then confirm). It can breed right up until then. It moves into a bowl
+  on a **Fish Bowl Shelf** (Build > Hall of Fame, $250, 6 bowls; move it like anything else)
+  for good: it never grows old, never needs feeding and the bowl never needs cleaning. Retired
+  fish can't be sold, bred or taken out, but you can **archive** one to free its bowl (Fish >
+  Retired lists the bowls and the archive). Each retired fish adds its stars, 4 per ribbon and
+  5 more to the hall's prestige.
 - **Show awards** (pixel art in `assets/awards/`, cut from the shared award sheet): every top-3
   finish hangs on the walls by itself and adds a trophy to the Trophy Cabinets. The metal shows
   the placing (gold, silver, bronze) and the fish matches the winner: goldfish plaques, guppy

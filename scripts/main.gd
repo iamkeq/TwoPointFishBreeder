@@ -12,6 +12,7 @@ const Placeable := preload("res://scripts/world/placeable.gd")
 const Tank := preload("res://scripts/world/tank.gd")
 const Shelf := preload("res://scripts/world/shelf.gd")
 const TrophyCase := preload("res://scripts/world/trophy_case.gd")
+const BowlShelf := preload("res://scripts/world/bowl_shelf.gd")
 const Customer := preload("res://scripts/world/customer.gd")
 const Staff := preload("res://scripts/world/staff.gd")
 const Hud := preload("res://scripts/ui/hud.gd")
@@ -214,9 +215,62 @@ func hall_prestige() -> int:
 			continue
 		if o is Tank:
 			p += o.hall_prestige()
-		elif o is TrophyCase:
+		elif o is TrophyCase or o is BowlShelf:
 			p += o.prestige()
 	return p
+
+
+## Bowl shelves in the Hall of Fame with a free bowl.
+func free_bowls() -> int:
+	var n := 0
+	for o in objects():
+		if o is BowlShelf and o.room() == "hall":
+			n += o.capacity() - o.retired.size()
+	return n
+
+
+## Retire a prize-winning fish (from storage or a tank) to a bowl in the Hall of Fame.
+## It never comes back out. Returns false if it can't.
+func retire_fish(id: int) -> bool:
+	var shelf: Node = null
+	for o in objects():
+		if o is BowlShelf and o.room() == "hall" and o.has_room():
+			shelf = o
+			break
+	if shelf == null:
+		return false
+	var f: Dictionary = Game.take_stored_fish(id)
+	if f.is_empty():
+		for o in objects():
+			if o is Tank and o.fish.any(func(x): return int(x["id"]) == id):
+				f = o.remove_fish(id)
+				break
+	if f.is_empty() or not Game.can_retire(f):
+		if not f.is_empty():
+			Game.store_fish(f)
+		return false
+	f["retired_day"] = Game.abs_day
+	shelf.add_retired(f)
+	Game.notify.emit("%s retired to the Hall of Fame" % _fish_name(f))
+	Game.fish_changed.emit()
+	return true
+
+
+## Move a retired fish off its shelf into the archive (a record kept in the Fish panel).
+func archive_fish(id: int) -> void:
+	for o in objects():
+		if o is BowlShelf:
+			var f: Dictionary = o.take_retired(id)
+			if not f.is_empty():
+				f["archived_day"] = Game.abs_day
+				Game.retired_archive.append(f)
+				Game.notify.emit("%s archived" % _fish_name(f))
+				Game.fish_changed.emit()
+				return
+
+
+func _fish_name(f: Dictionary) -> String:
+	return Data.FishData.full_name(f, Data.SPECIES[f["species"]]["name"])
 
 
 ## Extra customers the Hall of Fame draws: up to +50% (at 150 prestige).
@@ -227,7 +281,8 @@ func hall_bonus() -> float:
 ## Things in the Hall of Fame worth a look (tanks with fish, cabinets with trophies).
 func hall_sights() -> Array:
 	return objects().filter(func(o): return o.room() == "hall" and (
-		(o is Tank and not o.fish.is_empty()) or (o is TrophyCase and not o.awards.is_empty())))
+		(o is Tank and not o.fish.is_empty()) or (o is TrophyCase and not o.awards.is_empty())
+		or (o is BowlShelf and not o.retired.is_empty())))
 
 
 ## Hand out the trophies to the cabinets, best first (Grand Show golds, then golds, ...).
@@ -282,6 +337,8 @@ func make_object(id: String, ghost: bool = false) -> Node3D:
 		obj = Tank.new()
 	elif kind == "trophies":
 		obj = TrophyCase.new()
+	elif kind == "bowls":
+		obj = BowlShelf.new()
 	else:
 		obj = Placeable.new()
 	obj.world = self
@@ -303,6 +360,9 @@ func sell(obj: Node3D) -> void:
 		return
 	if obj.def["kind"] == "counter" and _count_kind("counter") <= 1:
 		Game.notify.emit("You need at least one till counter")
+		return
+	if obj is BowlShelf and not obj.retired.is_empty():
+		Game.notify.emit("Archive its retired fish first: they can't leave their bowls")
 		return
 	obj.on_removed()
 	Game.earn(obj.refund(), "refunds")
@@ -589,6 +649,15 @@ func _shoot(path: String) -> void:
 			place("trophy_case", Vector3(h.get_center().x - 1.5, 0, h.end.y - 0.5), 2)
 			place("trophy_case", Vector3(h.get_center().x + 1.5, 0, h.end.y - 0.5), 2)
 			place("plant", Vector3(h.end.x - 0.6, 0, h.position.y + 0.6), 0)
+			place("bowl_shelf", Vector3(h.end.x - 0.4, 0, h.get_center().y), 1)
+			for i in 3:
+				var w := Game.new_fish(["guppy", "goldfish", "goldfish"][i], 5, ["sunset", "oranda", "ranchu"][i])
+				w["ribbon"] = 2
+				Game.store_fish(w)
+				retire_fish(int(w["id"]))
+			var winner := Game.new_fish("guppy", 5, "koi")
+			winner["ribbon"] = 1
+			Game.store_fish(winner)
 			Game.awards_changed.emit()
 			if arg == "--hall-east":
 				Game.buy_plot("east")
@@ -621,6 +690,24 @@ func _shoot(path: String) -> void:
 				{"title": "Fish Show 7: Guppy class", "place": 1, "grand": false, "day": 98, "fish": "Sunset Guppy", "species": "guppy"},
 				{"title": "Fish Show 9", "place": 2, "grand": false, "day": 126, "fish": "Ryukin Goldfish", "species": "goldfish"}][which]
 			hud.show_award.call_deferred(a)
+		elif arg.begins_with("--retire-demo="):
+			# Test only (after --hall): 0 a winner's close-up, 1 the retire question,
+			# 2 a retired fish's close-up, 3 the bowl shelf selected, 4 the Fish panel's Retired tab.
+			await get_tree().process_frame
+			var which := int(arg.substr(14))
+			var shelf: Node = objects().filter(func(o): return o is BowlShelf)[0]
+			match which:
+				0:
+					hud._fish_details(int(Game.fish_storage.back()["id"]))
+				1:
+					hud._confirm_retire(int(Game.fish_storage.back()["id"]))
+				2:
+					hud._fish_details(int(shelf.retired[0]["id"]))
+				3:
+					tool.select(shelf)
+				4:
+					hud._fish_tab = "Retired"
+					hud._open("fish")
 		elif arg == "--steps-min":
 			Game.steps_minimized = true
 		elif arg == "--edit":
@@ -847,6 +934,8 @@ func to_save() -> Dictionary:
 			e["breed_days"] = o.breed_days
 		elif o is Shelf:
 			e["slots"] = o.to_save()
+		elif o is BowlShelf:
+			e["retired"] = o.retired.duplicate(true)
 		objs.append(e)
 	return {"objects": objs, "camera": [rig.position.x, rig.position.z, rig.distance, rig.yaw]}
 
@@ -866,6 +955,9 @@ func _restore(w: Dictionary) -> void:
 				o.set_showcase(true)
 		elif o is Shelf:
 			o.restore(e.get("slots"), str(e.get("product", "")), int(e.get("units", 0)))
+		elif o is BowlShelf:
+			for f in e.get("retired", []).filter(func(x): return Data.SPECIES.has(x.get("species", ""))):
+				o.add_retired(f)
 	var cam: Array = w.get("camera", [])
 	if cam.size() == 4:
 		rig.look_at_point(Vector3(float(cam[0]), 0, float(cam[1])), float(cam[2]), float(cam[3]))

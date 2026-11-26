@@ -68,6 +68,8 @@ const ITEMS := {
 		"kind": "decor", "appeal": 0.0, "model": "Props/SM_Prop_Warehouse_Pallet_Stacked_01", "rooms": ["back"]},
 	"desk": {"name": "Office Desk", "cat": "Back Room", "cost": 150, "size": Vector2(1.5, 1.0),
 		"kind": "decor", "appeal": 0.0, "model": "Props/SM_Prop_Shop_Desk_03", "rooms": ["back"]},
+	"bowl_shelf": {"name": "Fish Bowl Shelf", "cat": "Hall of Fame", "cost": 250, "size": Vector2(1.5, 0.5),
+		"kind": "bowls", "capacity": 6, "height": 1.5, "rooms": ["hall"]},
 	"trophy_case": {"name": "Trophy Cabinet", "cat": "Hall of Fame", "cost": 300, "size": Vector2(1.5, 0.6),
 		"kind": "trophies", "height": 1.9, "rooms": ["hall"]},
 }

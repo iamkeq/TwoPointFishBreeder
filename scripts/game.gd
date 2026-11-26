@@ -61,6 +61,8 @@ var extra_loans_taken := 0
 var owned_plots: Array = []
 ## Trophies from fish shows (top 3): {title, place, grand, day, fish}. Shown in the Hall of Fame.
 var awards: Array = []
+## Retired fish taken off their bowl shelves: kept as a record (with "archived_day").
+var retired_archive: Array = []
 ## The First steps checklist is folded down to its title bar.
 var steps_minimized := false
 var start_choice := ""
@@ -143,7 +145,7 @@ const SAVED := ["money", "day", "month", "year", "abs_day", "reputation", "marke
 	"pending_orders", "fish_storage", "staff", "_next_staff_id", "loans", "extra_loans_taken", "owned_plots",
 	"start_choice", "_next_loan_id", "stats", "last_report", "history", "totals", "discovered", "unlocked",
 	"achievements_done", "stars_earned", "show_entry", "show_number", "last_show", "_day_t", "_next_fish_id",
-	"showcase_peak", "first_steps", "awards", "steps_minimized"]
+	"showcase_peak", "first_steps", "awards", "steps_minimized", "retired_archive"]
 
 
 func time_scale() -> float:
@@ -289,6 +291,11 @@ func _age_storage() -> void:
 		elif was_fry and FishData.is_adult(f) and f.get("bred", false):
 			totals["best_stars"] = maxi(int(totals["best_stars"]), int(f["stars"]))
 	fish_changed.emit()
+
+
+## Only a fish that has placed at a show (a ribbon) can retire to the Hall of Fame.
+static func can_retire(f: Dictionary) -> bool:
+	return FishData.is_adult(f) and int(f.get("ribbon", 0)) > 0
 
 
 ## Fish that died today: [fish, where].
